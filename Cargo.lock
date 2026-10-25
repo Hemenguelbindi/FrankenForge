@@ -1244,6 +1244,7 @@ dependencies = [
  "eframe",
  "ff-core",
  "ff-io",
+ "ff-surgery",
  "fluent-bundle",
  "rfd",
  "serde_json",

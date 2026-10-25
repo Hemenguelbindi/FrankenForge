@@ -57,6 +57,9 @@ pub struct StackDiff {
     pub compatible: Vec<usize>,
     /// Blocks with the same index that do not match.
     pub incompatible: Vec<BlockDiff>,
+    /// Block indices present only in A / only in B: nothing to pair them with.
+    pub only_a: Vec<usize>,
+    pub only_b: Vec<usize>,
 }
 
 #[derive(Debug, Serialize)]
@@ -108,9 +111,14 @@ pub fn stacks(a: &Model, b: &Model) -> Vec<StackDiff> {
                 blocks_b: bb.len(),
                 compatible: Vec::new(),
                 incompatible: Vec::new(),
+                only_a: Vec::new(),
+                only_b: bb.keys().filter(|i| !ba.contains_key(*i)).copied().collect(),
             };
             for (index, x) in ba {
-                let Some(y) = bb.get(index) else { continue };
+                let Some(y) = bb.get(index) else {
+                    s.only_a.push(*index);
+                    continue;
+                };
                 let differences = block_diff(a, x, b, y);
                 if differences.is_empty() {
                     s.compatible.push(*index);
@@ -196,6 +204,9 @@ impl Report {
                 .map(|d| format!("[{}] {}", d.index, d.differences.join("; ")))
                 .collect();
             list(&mut out, "incompatible", &lines);
+            let indices = |v: &[usize]| v.iter().map(|i| format!("[{i}]")).collect::<Vec<_>>();
+            list(&mut out, "only in A", &indices(&s.only_a));
+            list(&mut out, "only in B", &indices(&s.only_b));
         }
 
         let tk = &self.tokenizer;

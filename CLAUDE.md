@@ -31,7 +31,7 @@ ff-cli  →  ff-surgery  →  ff-core  ←  ff-io
 | `ff-io` | format adapters implementing the ports (safetensors today) | `ff-core` |
 | `ff-surgery` | use cases: recipe → `Plan` → `ops` → build → verify → lock | `ff-core` only — **never `ff-io`** |
 | `ff-cli` | composition root: picks the format, calls use cases, prints | everything |
-| `ff-gui` | composition root: egui/eframe read-only inspector (metadata only, no inference) | `ff-core`, `ff-io` |
+| `ff-gui` | composition root: egui/eframe Inspector (read-only, metadata only, no inference) and Forge (builds through ff-surgery) | `ff-core`, `ff-io`, `ff-surgery` |
 
 Rules:
 - `ff-surgery` works through `&dyn ModelFormat` / `&dyn TensorSource`. Need a format feature there?
@@ -39,9 +39,10 @@ Rules:
 - Planning touches metadata only. Weights are read only in `build::build`, one tensor at a time via
   the `fetch` callback — never load a whole model into memory.
 - `ff-cli` holds no logic beyond argument parsing and printing.
-- `ff-gui` only displays: opening goes through `ModelFormat::open` (headers only), structure through
-  `Model::layout`. No parsing, surgery or compare logic of its own; view state that can be tested
-  without egui lives in `ff-gui/src/inspected.rs`.
+- `ff-gui` Inspector only displays: opening goes through `ModelFormat::open` (headers only), structure
+  through `Model::layout`. Forge calls ff-surgery use cases (`compare::run`, `build::plan`,
+  `build::build`) and never duplicates them. No parsing, surgery or compare logic of its own; view
+  state that can be tested without egui lives in `ff-gui/src/inspected.rs` and `ff-gui/src/forge/state.rs`.
 - `ff-gui` text is never hard-coded: every user-visible string is a Fluent message in
   `crates/ff-gui/locales/{en,ru,zh-CN}.ftl`, read via `I18n::t`/`ta`/`count`. Add a new key to all
   three files (tests fail on a missing or extra key, and on any character the bundled font lacks).

@@ -19,6 +19,10 @@ fn core_errors_map_to_explanations_and_keep_the_original_text() {
             Error::Format { path: "m".into(), reason: "header length 9 out of range".into() },
             FailureKind::Format,
         ),
+        (Error::Incompatible("shape [2] vs [3]".into()), FailureKind::Incompatible),
+        (Error::UnsupportedConfig("per-layer `layer_types`".into()), FailureKind::UnsupportedConfig),
+        (Error::Recipe("step 1: no such source".into()), FailureKind::Recipe),
+        (Error::Verify("w: content hash mismatch".into()), FailureKind::Verify),
         (Error::TensorNotFound("w".into()), FailureKind::Unknown),
     ];
     for (error, kind) in cases {

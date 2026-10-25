@@ -5,12 +5,16 @@ use std::collections::BTreeSet;
 use super::*;
 use crate::components::Kind;
 use crate::failure::FailureKind;
+use crate::forge::analysis::{BlockStatus, tokenizer_key};
+use crate::forge::readiness::Problem;
 use crate::inspected::ConfigProblem;
 use crate::inspector::Mode;
 use crate::learn::{Explanation, STEPS};
 use crate::presentation::Presentation;
 use crate::semantics::{Basis, DIM_KEYS, Group, Role};
 use crate::structure::{group_keys, role_keys};
+use crate::workspace::Workspace;
+use ff_surgery::compare::TokenizerMatch;
 
 /// Message ids defined in an FTL source (`id = ...` at the start of a line).
 fn ids(source: &str) -> BTreeSet<&str> {
@@ -75,6 +79,29 @@ fn every_key_used_by_the_code_exists_in_english() {
     used.extend(keys_used(include_str!("../learn.rs")));
     used.extend(keys_used(include_str!("../structure.rs")));
     used.extend(keys_used(include_str!("../views.rs")));
+    used.extend(keys_used(include_str!("../forge/mod.rs")));
+    used.extend(keys_used(include_str!("../forge/build_view.rs")));
+    // Forge passes keys through helpers and tables, so they are listed explicitly.
+    used.extend(Workspace::ALL.map(Workspace::message_key));
+    used.extend(BlockStatus::KEYS);
+    used.extend([
+        "forge-base",
+        "forge-base-hint",
+        "forge-dialog-base",
+        "forge-donor",
+        "forge-donor-hint",
+        "forge-dialog-donor",
+    ]);
+    used.extend(Problem::KEYS);
+    used.extend(
+        [
+            TokenizerMatch::Identical,
+            TokenizerMatch::SameVocab,
+            TokenizerMatch::DifferentVocab,
+            TokenizerMatch::Missing,
+        ]
+        .map(tokenizer_key),
+    );
     used.extend(Role::ALL.iter().flat_map(|r| <[&str; 2]>::from(r.message_keys())));
     used.extend(Role::ALL.iter().flat_map(|r| <[&str; 2]>::from(role_keys(*r))));
     used.extend(Presentation::ALL.map(Presentation::message_key));
