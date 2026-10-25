@@ -49,5 +49,5 @@ verified on disk, not in behavior.
   opt-in and marked NOT validated.
 - No `--locked` rebuild; the reader reopens the file per tensor (no mmap).
 
-[Unreleased]: https://github.com/<owner>/FrankenForge/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/<owner>/FrankenForge/releases/tag/v0.1.0
+[Unreleased]: https://github.com/Hemenguelbindi/FrankenForge/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Hemenguelbindi/FrankenForge/releases/tag/v0.1.0

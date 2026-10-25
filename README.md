@@ -106,7 +106,7 @@ are attempted in CI from the first public repository run onward; treat anything 
 as *expected to work, not yet verified* until that CI is green.
 
 ```sh
-git clone https://github.com/<owner>/FrankenForge.git
+git clone https://github.com/Hemenguelbindi/FrankenForge.git
 cd FrankenForge
 ```
 
