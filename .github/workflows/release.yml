@@ -1,0 +1,73 @@
+name: Release
+
+# Push a tag like `v0.1.0` to build every platform and attach the archives to that GitHub release.
+on:
+  push:
+    tags: ["v*"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, target: x86_64-pc-windows-msvc }
+          # Oldest available runner keeps the glibc requirement low for users.
+          - { os: ubuntu-22.04, target: x86_64-unknown-linux-gnu }
+          - { os: ubuntu-22.04-arm, target: aarch64-unknown-linux-gnu }
+          - { os: macos-latest, target: aarch64-apple-darwin }
+          - { os: macos-latest, target: x86_64-apple-darwin }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Same list as ci.yml: ff-gui links against GTK/GL/X11/Wayland on Linux.
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgtk-3-dev libgl1-mesa-dev \
+            libx11-dev libxcursor-dev libxkbcommon-dev \
+            libwayland-dev libwayland-bin wayland-protocols
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release --locked --target ${{ matrix.target }} -p ff-cli -p ff-gui
+
+      - name: Package
+        shell: bash
+        run: |
+          name="frankenforge-${GITHUB_REF_NAME}-${{ matrix.target }}"
+          ext=""; [[ "${{ runner.os }}" == "Windows" ]] && ext=".exe"
+          mkdir "$name"
+          cp "target/${{ matrix.target }}/release/frankenforge$ext" \
+             "target/${{ matrix.target }}/release/ff-gui$ext" \
+             LICENSE README.md CHANGELOG.md examples/recipe.toml "$name/"
+          # The GUI embeds Noto Sans SC; OFL 1.1 requires its license to travel with it.
+          cp crates/ff-gui/assets/fonts/OFL.txt "$name/OFL-NotoSansSC.txt"
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            7z a "$name.zip" "$name"
+            echo "ASSET=$name.zip" >> "$GITHUB_ENV"
+          else
+            tar czf "$name.tar.gz" "$name"
+            echo "ASSET=$name.tar.gz" >> "$GITHUB_ENV"
+          fi
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ASSET }}
