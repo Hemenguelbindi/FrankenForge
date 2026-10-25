@@ -3,6 +3,17 @@
 Thanks for your interest. FrankenForge is an early prototype; the bar below keeps it honest and
 maintainable.
 
+## Contributions and licensing
+
+- You keep the copyright on your contribution. By submitting it, you confirm that you have the
+  right to publish it and you agree that it is distributed under the project's
+  [Apache License 2.0](LICENSE).
+- You are responsible for understanding, reviewing and testing what you submit. Review and merge
+  by the maintainers do not transfer authorship of your contribution to them.
+- AI-assisted contributions are welcome under the same bar: you must understand and have tested
+  every line you submit, and disclose significant use of AI tools in the PR description.
+- Unreviewed generated code is not accepted.
+
 ## Ground rules
 
 - **Rust only.** No Python anywhere — not in tooling, tests, fixtures or helper scripts. Test
@@ -23,18 +34,22 @@ maintainable.
   improved. A PR that disables a test or loosens a check needs an explanation and will likely be
   refused.
 
-## Clean room: no copying from competitors
+## Clean room: no copying from competing tools
 
-FrankenForge must remain free of other tools' code and data:
+This rule is about **competing model-editing tools**, not about third-party code in general:
 
-- Implement file formats from **published specifications** (e.g. the safetensors and GGUF specs)
-  and your own reading of the code in *this* repository.
-- **Do not copy source code**, decompiled output, or substantial structures from other model
-  editors, converters or merge tools — even "lightly adapted".
-- Do not commit decompiled third-party binaries, game/model files, or data scraped from other
-  projects' repositories.
-- If you port an algorithm from a paper or spec, cite it in a comment; if you had to read another
-  tool's source to understand a behavior, say so in the PR so it can be reviewed as a re-implementation.
+- Declared third-party dependencies and bundled assets (e.g. the OFL-licensed UI font) are fine —
+  use them and respect their licenses.
+- **Do not copy code or data** from other model editors, converters or merge tools — including
+  decompiled output and substantial structures, even "lightly adapted".
+- Do not read a competing tool's source in order to reproduce its behavior. If you came into such
+  contact accidentally, disclose it to the maintainers **before** continuing the related
+  implementation.
+- Do not commit decompiled third-party binaries, checkpoints, or data scraped from other projects'
+  repositories.
+- Implement file formats from **published specifications** (e.g. the safetensors and GGUF specs).
+- Algorithms from public papers and specifications may be implemented — cite the source in a
+  comment.
 
 ## Before you open a PR
 
@@ -45,13 +60,14 @@ cargo test --workspace
 cargo build --release -p ff-gui   # when GUI code changed
 ```
 
-All four must pass; CI runs the same set on Windows, Linux and macOS (Linux and macOS legs are
-new — the maintainers develop on Windows, so first CI runs may need dependency-list fixes).
+All four must pass. CI runs the same set across the OS matrix defined in
+[.github/workflows/ci.yml](.github/workflows/ci.yml); see that file for the current platforms and
+commands.
 
 ## Workflow
 
-1. Pick or open an issue first for anything beyond a small fix (the ROADMAP lists the intended
-   order of work — comment there before starting a big feature).
+1. Check ROADMAP.md before starting a large feature, then open or join an issue to discuss the
+   approach.
 2. Branch from `main`, keep PRs focused; one logical change per PR.
 3. Describe *what* and *why* in the PR body; link issues; update `CHANGELOG.md` under
    `Unreleased` for user-visible changes.
