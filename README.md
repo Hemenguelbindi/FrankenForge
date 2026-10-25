@@ -47,6 +47,14 @@ you explicitly ask it to analyze.
 - **Localization:** English, Русский, 简体中文 — auto-detected from the OS, switchable in the
   toolbar at any time, saved between runs. The bundled Noto Sans SC font covers all three.
 - Dark/light theme; window settings persist.
+ 
+## See it in action
+
+Opening a sharded Safetensors checkpoint, exploring its structure, selecting a tensor,
+and computing an on-demand numeric profile.
+
+![FrankenForge inspector demonstration](examples/inspector-demo.gif)
+
 
 ### CLI — automation, recipes, CI and debugging (`frankenforge`)
 
