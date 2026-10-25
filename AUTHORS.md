@@ -1,19 +1,15 @@
 # Authors
 
-Keep this file short: it lists who is responsible for the project, not everyone who ever
-committed (that is what git history and [CONTRIBUTING.md](CONTRIBUTING.md) are for).
+## Creator & Maintainer
 
-## Creator & maintainer
-
-- **Victor Karpov** — original author and current maintainer.
+Victor Karpov — original concept, project direction, architecture, and ongoing maintenance.
 
 ## Contributors
 
-Contributors add themselves here (or via a one-line PR to this file) with their first merged
-change. Please use only names you have the right to list.
+Contributors are recorded in the Git history. Significant contributors may also be listed here with their consent.
 
-## Note on AI assistance
+## AI-Assisted Development
 
-Parts of this codebase were written with an AI coding agent under human direction and review
-(see the "AI-assisted development" section of the README). Authorship and responsibility for
-every merged change lie with the humans listed above and in the git history.
+AI coding tools were used during development under human direction. AI tools are not listed as authors.
+
+Contributors retain authorship of their contributions and are responsible for reviewing what they submit. Maintainers are responsible for project direction and for reviewing and integrating accepted changes.

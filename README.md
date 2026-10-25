@@ -2,20 +2,20 @@
 
 **Early prototype.** FrankenForge is a Rust toolkit for researching and recombining language-model
 checkpoints — inspecting what is inside a model, transplanting blocks between models, and exporting
-a rebuilt checkpoint that is verified on disk and reproducible from a lock file. No Python is
-involved anywhere.
+a rebuilt checkpoint whose bytes are verified on disk. No Python is involved anywhere.
 
 The point of the project is twofold:
 
 - **Make model architecture legible.** Most people who download a `.safetensors` checkpoint cannot
   say what is inside it. FrankenForge opens the file and explains its structure in plain language,
   in the reader's own language, without requiring any ML background.
-- **Make experiments reproducible.** Every rebuild is described by a small TOML recipe and ends
-  with a lock file containing SHA-256 hashes of the recipe, every source model and the output, so
-  the same experiment can be rebuilt and checked bit-for-bit.
+- **Make experiments reproducible.** Every rebuild is described by a small TOML recipe, so the same
+  experiment can be run again from the same inputs; after a build, a lock file records the SHA-256
+  hashes of the recipe, every source model and the output so the result stays auditable. (A
+  `--locked` rebuild that checks those hashes up front is not implemented yet.)
 
-Nothing in the current prototype runs a model: the GUI reads metadata only, and surgery verifies
-file integrity, not model behavior. See [Limitations](#limitations).
+Nothing in the current prototype runs a model: opening a checkpoint reads only its headers and
+metadata, surgery verifies file integrity, not model behavior. See [Limitations](#limitations).
 
 ![FrankenForge GUI in English: Technical data view with a tensor selected and the Tensor Inspector analyzing it](examples/app_example.png)
 
@@ -24,8 +24,9 @@ file integrity, not model behavior. See [Limitations](#limitations).
 ### GUI — the main interface for users (`ff-gui`)
 
 A read-only checkpoint inspector built with egui/eframe. It opens a `.safetensors` file or a
-directory of shards and reads **metadata only**: whole weights are never loaded into memory and
-nothing is ever executed.
+directory of shards reading **only headers and metadata**: whole weights are never loaded into
+memory and nothing is executed. The only weight payload the GUI ever reads is the single tensor
+you explicitly ask it to analyze.
 
 - **Three presentations, switched by tabs:**
   - **Learn** — a self-contained guided tour for a reader without ML background: how text becomes
@@ -49,7 +50,7 @@ nothing is ever executed.
 
 ### CLI — automation, recipes, CI and debugging (`frankenforge`)
 
-The `ff-cli` crate builds on and stays. It is the scripting front for the same engine:
+The same engine, scripted. `ff-cli` is the automation front for recipes, CI and debugging:
 
 - `inspect` — tensor layout of a file or shard directory;
 - `compare` — metadata-only compatibility report of two models: shared/typed-differing/unique
@@ -92,21 +93,57 @@ Honest state of the prototype:
 - There is no `--locked` rebuild that re-checks source hashes before building, and the safetensors
   reader reopens the file per tensor (no mmap).
 
-## Quick Start (Windows / PowerShell)
+## Building from Source
 
-Prerequisites: Git, and a recent stable Rust toolchain with the MSVC backend
-(edition 2024 requires Rust 1.85+; install from https://rustup.rs).
+The source targets Windows, Linux and macOS; each OS produces its own executable. There are **no
+prebuilt binary releases yet** — build from source with a stable Rust toolchain
+(edition 2024 requires Rust 1.85+). Install [rustup](https://rustup.rs); its setup will point you
+to the platform C toolchain you need (MSVC Build Tools on Windows, Xcode Command Line Tools on
+macOS).
 
-```powershell
+So far the maintainers have built and run FrankenForge **on Windows only**. Linux and macOS builds
+are attempted in CI from the first public repository run onward; treat anything other than Windows
+as *expected to work, not yet verified* until that CI is green.
+
+```sh
 git clone https://github.com/<owner>/FrankenForge.git
 cd FrankenForge
+```
 
-# build the GUI
+### Windows (PowerShell)
+
+```powershell
 cargo build --release -p ff-gui
-
-# run it (optionally pass a checkpoint path)
 .\target\release\ff-gui.exe
-.\target\release\ff-gui.exe C:\models\my-checkpoint
+.\target\release\ff-gui.exe C:\models\my-checkpoint   # optionally pass a checkpoint path
+```
+
+### Linux
+
+On Debian/Ubuntu the GUI needs system development libraries for GTK (native file dialogs) and
+X11/Wayland/GL (window creation):
+
+```sh
+sudo apt-get install libgtk-3-dev libgl1-mesa-dev libx11-dev libxcursor-dev \
+  libxkbcommon-dev libwayland-dev libwayland-bin wayland-protocols
+```
+
+Equivalent packages exist on other distributions under different names. Then:
+
+```sh
+cargo build --release -p ff-gui
+./target/release/ff-gui
+./target/release/ff-gui ~/models/my-checkpoint
+```
+
+### macOS
+
+No extra system packages beyond the Xcode Command Line Tools that rustup requires:
+
+```sh
+cargo build --release -p ff-gui
+./target/release/ff-gui
+./target/release/ff-gui ~/models/my-checkpoint
 ```
 
 The window opens with the guided tour; use *Open file…* or *Open folder…* to load a
@@ -136,37 +173,40 @@ Languages: the interface runs in **English / Русский / 简体中文** (to
 
 ## Advanced: CLI
 
-The CLI is the automation surface: recipes, CI, and debugging. From the workspace root,
-`cargo run -- <cmd>` runs the CLI; or build once and call `frankenforge`:
+The GUI is the user interface; the CLI is the scripting surface for the same engine, used for
+recipes, CI and debugging. It works the same on every OS via `cargo run -p ff-cli -- …` (paths
+below are examples, not Windows-only):
 
-```powershell
-cargo build --release -p ff-cli
-$ff = '.\target\release\frankenforge.exe'
+```sh
+cargo run -p ff-cli -- inspect ./models/base                      # file or directory of shards
+cargo run -p ff-cli -- compare ./models/base ./models/donor       # metadata-only compatibility report
+cargo run -p ff-cli -- compare ./models/base ./models/donor --json
 
-& $ff inspect C:\models\base                       # file or directory of shards
-& $ff compare C:\models\base C:\models\donor       # metadata-only compatibility report
-& $ff compare C:\models\base C:\models\donor --json
-
-& $ff plan examples\recipe.toml                    # dry run: resulting layout + provenance
-& $ff build examples\recipe.toml -o C:\out\merged.safetensors   # weights only
-& $ff build examples\recipe.toml -o C:\out\merged               # directory: weights + config.json + tokenizer
+cargo run -p ff-cli -- plan examples/recipe.toml                  # dry run: layout + provenance
+cargo run -p ff-cli -- build examples/recipe.toml -o ./out/merged.safetensors  # weights only
+cargo run -p ff-cli -- build examples/recipe.toml -o ./out/merged              # directory: weights + config.json + tokenizer
 
 # experimental adapter (no runtime executes it; marks the build NOT validated):
-& $ff build adapter-recipe.toml -o C:\out\bridged.safetensors --allow-experimental-adapter
+cargo run -p ff-cli -- build adapter-recipe.toml -o ./out/bridged.safetensors --allow-experimental-adapter
 ```
 
+Or build once (`cargo build --release -p ff-cli`) and call `frankenforge` / `frankenforge.exe`
+from `target/release/`.
+
 A build is finished only when the output has been re-read, every tensor hashed, and
-`<out>.safetensors.lock.json` written with SHA-256 of the recipe, every source and the output.
-Recipes are TOML with `deny_unknown_fields`; source paths are relative to the recipe file. See
-[examples/recipe.toml](examples/recipe.toml) for every step type.
+`<out>.safetensors.lock.json` written with SHA-256 of the recipe, every source and the output —
+integrity of the files, not quality of the model. Recipes are TOML with `deny_unknown_fields`;
+source paths are relative to the recipe file. See [examples/recipe.toml](examples/recipe.toml)
+for every step type.
 
 There is one ignored end-to-end test that checks a byte-exact no-op rebuild against a real
 checkpoint you provide:
 
-```powershell
-$env:FF_REAL_MODEL = 'C:\models\qwen3-moe-tiny-random'
-cargo test -p ff-cli --test real_roundtrip -- --ignored
+```sh
+FF_REAL_MODEL=./models/qwen3-moe-tiny-random cargo test -p ff-cli --test real_roundtrip -- --ignored
 ```
+
+On Windows PowerShell, set the variable first: `$env:FF_REAL_MODEL = 'C:\models\qwen3-moe-tiny-random'`.
 
 ## Repository layout
 
@@ -181,7 +221,7 @@ FrankenForge/
 │   ├── ff-cli/       # `frankenforge` — composition root for automation.
 │   └── ff-gui/       # `ff-gui` — composition root for the main user interface (egui/eframe).
 ├── examples/         # recipe.toml (every step type), GUI screenshot
-└── Cargo.lock        # tracked: the app is a shipped binary
+└── Cargo.lock        # tracked: the workspace produces shipped binaries
 ```
 
 A new format (GGUF, …) is a new module in `ff-io` implementing `ModelFormat`; a new operation is a
@@ -198,8 +238,8 @@ Short version, in order (details in [ROADMAP.md](ROADMAP.md)):
 4. **Read-only GGUF** — inspect GGUF checkpoints without claiming to write them.
 5. **Graphs and more complex compositions** — multi-input surgery beyond pairwise block swapping.
 
-No dates and no promises: a rebuilt model's *quality* is not something this project guarantees —
-only its integrity and reproducibility.
+No dates and no promises: FrankenForge verifies the on-disk integrity of a rebuild — never its
+quality, and never a claim that a platform it has not run on actually works.
 
 ## Contributing
 
@@ -217,6 +257,13 @@ one first for anything beyond a small fix.
 FrankenForge parses untrusted checkpoint files. How we treat that, what is in scope, and how to
 report a vulnerability privately: [SECURITY.md](SECURITY.md).
 
+## AI-assisted development
+
+FrankenForge is created and maintained under human direction: the maintainers own the
+architecture, the scope and every merged change. Changes assisted by AI coding tools go through
+the same review and test bar as any other contribution, and each contributor is expected to
+understand and stand behind the lines they submit.
+
 ## License
 
 Code is licensed under the [Apache License 2.0](LICENSE).
@@ -224,10 +271,3 @@ Code is licensed under the [Apache License 2.0](LICENSE).
 The bundled UI font `crates/ff-gui/assets/fonts/NotoSansSC-Regular.otf` is licensed under the
 SIL Open Font License 1.1 — see [`OFL.txt`](crates/ff-gui/assets/fonts/OFL.txt) next to it. That
 license applies to the font only and is preserved on redistribution.
-
-## AI-assisted development
-
-This project was developed with AI assistance (an LLM coding agent wrote most of the code under
-human direction, review and testing). The maintainers treat AI output as untrusted until it passes
-the checks above; every claim in this README describes code that is in this repository and tested.
-Contributions that use AI tools are welcome under the same bar: you reviewed every line you submit.

@@ -45,7 +45,8 @@ cargo test --workspace
 cargo build --release -p ff-gui   # when GUI code changed
 ```
 
-All four must pass; CI runs the same set on Windows and Linux.
+All four must pass; CI runs the same set on Windows, Linux and macOS (Linux and macOS legs are
+new — the maintainers develop on Windows, so first CI runs may need dependency-list fixes).
 
 ## Workflow
 

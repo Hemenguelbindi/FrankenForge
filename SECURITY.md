@@ -17,9 +17,9 @@ FrankenForge is an early prototype. Until 1.0 we fix security issues on `main` a
   anything is allocated — a crafted checkpoint must fail, not crash or corrupt memory.
 - It **writes only where you point it**: builds go to an explicit `-o` path via `<out>.partial` +
   rename; existing output directories are never overwritten.
-- It **never executes model code and never networks**: the GUI reads metadata only; `Analyze`
-  streams the single selected tensor's bytes and computes statistics. There is no telemetry, no
-  update checks, no remote code path in the tool itself.
+- It **never executes model code and never networks**: the GUI reads headers and metadata when
+  opening; `Analyze` streams the single selected tensor's bytes and computes statistics. There is
+  no telemetry, no update checks, no remote code path in the tool itself.
 - It **does not sandbox model content**: a rebuilt checkpoint carries the base and donor weights;
   running it later in some runtime is your risk and your responsibility.
 

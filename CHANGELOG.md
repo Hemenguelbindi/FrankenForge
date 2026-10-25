@@ -37,8 +37,8 @@ verified on disk, not in behavior.
   - localization in English / Русский / 简体中文 (OS auto-detect, saved choice), dark/light theme,
     persisted window settings, bundled Noto Sans SC (OFL 1.1).
 - Workspace-wide checks: `cargo fmt`, `cargo clippy -D warnings`, unit + end-to-end tests, an
-  ignored byte-exact real-model round-trip test, and CI (fmt/clippy/test/release build on Windows
-  and Linux).
+  ignored byte-exact real-model round-trip test, and CI (fmt/clippy/test/release build on Windows,
+  Linux and macOS).
 - Open-source packaging: Apache-2.0 license, README, ROADMAP, CONTRIBUTING, SECURITY, code of
   conduct, issue/PR templates, author list, this changelog.
 
