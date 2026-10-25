@@ -87,14 +87,3 @@ fn only_compatible_rows_count_as_compatible() {
     assert!(!a.compatible(&id(1)), "a block missing in the Donor is not selectable");
     assert!(!a.compatible(&id(7)), "an unknown index is not selectable");
 }
-
-#[test]
-fn every_status_has_a_listed_message_key() {
-    let all = [
-        BlockStatus::Compatible,
-        BlockStatus::Different(Vec::new()),
-        BlockStatus::OnlyInBase,
-        BlockStatus::OnlyInDonor,
-    ];
-    assert_eq!(all.map(|s| s.message_key()), BlockStatus::KEYS);
-}

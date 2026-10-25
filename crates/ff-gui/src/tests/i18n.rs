@@ -5,8 +5,12 @@ use std::collections::BTreeSet;
 use super::*;
 use crate::components::Kind;
 use crate::failure::FailureKind;
-use crate::forge::analysis::{BlockStatus, tokenizer_key};
+use crate::forge::analysis::tokenizer_key;
+use crate::forge::build_view::STAGES;
+use crate::forge::mismatch::Mismatch;
 use crate::forge::readiness::Problem;
+use crate::forge::schema::Transfer;
+use crate::forge::steps::{Mark, TITLES};
 use crate::inspected::ConfigProblem;
 use crate::inspector::Mode;
 use crate::learn::{Explanation, STEPS};
@@ -81,9 +85,15 @@ fn every_key_used_by_the_code_exists_in_english() {
     used.extend(keys_used(include_str!("../views.rs")));
     used.extend(keys_used(include_str!("../forge/mod.rs")));
     used.extend(keys_used(include_str!("../forge/build_view.rs")));
+    used.extend(keys_used(include_str!("../forge/schema_view.rs")));
     // Forge passes keys through helpers and tables, so they are listed explicitly.
     used.extend(Workspace::ALL.map(Workspace::message_key));
-    used.extend(BlockStatus::KEYS);
+    used.extend(Transfer::ALL.map(Transfer::message_key));
+    used.extend(Mismatch::KEYS);
+    used.extend(Mark::KEYS);
+    used.extend(TITLES);
+    used.extend(STAGES);
+    used.extend(["forge-row-base", "forge-row-donor", "forge-legend-taken", "forge-cell-gap"]);
     used.extend([
         "forge-base",
         "forge-base-hint",

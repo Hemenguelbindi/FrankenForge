@@ -28,25 +28,6 @@ pub enum BlockStatus {
     OnlyInDonor,
 }
 
-impl BlockStatus {
-    #[cfg(test)]
-    pub const KEYS: [&str; 4] = [
-        "forge-block-compatible",
-        "forge-block-different",
-        "forge-block-only-base",
-        "forge-block-only-donor",
-    ];
-
-    pub fn message_key(&self) -> &'static str {
-        match self {
-            BlockStatus::Compatible => "forge-block-compatible",
-            BlockStatus::Different(_) => "forge-block-different",
-            BlockStatus::OnlyInBase => "forge-block-only-base",
-            BlockStatus::OnlyInDonor => "forge-block-only-donor",
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlockRow {
     pub id: BlockId,

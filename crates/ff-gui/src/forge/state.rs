@@ -190,6 +190,7 @@ impl Forge {
         self.analysis.as_ref().map(|(_, a)| a)
     }
 
+    #[cfg(test)]
     pub fn is_selected(&self, id: &BlockId) -> bool {
         self.selected.contains(id)
     }

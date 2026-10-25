@@ -1,15 +1,17 @@
-//! The bottom of the Forge page: what still blocks a build, the Build button, the running build
-//! and its result.
+//! The Build card: what still blocks a build, the Build button, the running build and its result.
+//! The core reports no stages, so a running build shows one honest status line; the four stages
+//! are listed only after success, when `build::build` guarantees all of them happened.
 
 use std::path::{Path, PathBuf};
 
-use eframe::egui::{self, CornerRadius, Margin, RichText, Stroke};
+use eframe::egui::{self, RichText, Stroke};
 
 use super::build::{BuildError, Built};
-use super::failure_box;
+use super::palette::Palette;
 use super::paths::OutputProblem;
 use super::readiness::{Problem, build_enabled};
 use super::state::{BuildStatus, Forge};
+use super::widgets::{check, failure_box, muted};
 use crate::i18n::I18n;
 use crate::views;
 
@@ -20,52 +22,91 @@ pub enum Action {
     Open(PathBuf),
 }
 
-pub fn section(ui: &mut egui::Ui, t: &I18n, state: &mut Forge) -> Action {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Status {
+    Idle,
+    Running,
+    Succeeded,
+    /// The fresh check before writing refused; nothing was written.
+    NotStarted,
+    /// The core failed or the worker crashed.
+    Stopped,
+}
+
+pub fn status(b: &BuildStatus) -> Status {
+    match b {
+        BuildStatus::Idle => Status::Idle,
+        BuildStatus::Running(_) => Status::Running,
+        BuildStatus::Done(Ok(_)) => Status::Succeeded,
+        BuildStatus::Done(Err(BuildError::Refused(_))) => Status::NotStarted,
+        BuildStatus::Done(Err(BuildError::Failed { .. })) => Status::Stopped,
+    }
+}
+
+pub const STAGES: [&str; 4] =
+    ["forge-stage-plan", "forge-stage-copy", "forge-stage-verify", "forge-stage-lock"];
+
+/// Stages are claimed only when the build succeeded; a failure never marks a stage as done.
+pub fn completed_stages(s: Status) -> &'static [&'static str] {
+    if s == Status::Succeeded { &STAGES } else { &[] }
+}
+
+pub fn section(ui: &mut egui::Ui, t: &I18n, pal: Palette, state: &mut Forge) -> Action {
     let problems = state.problems();
     let running = state.running();
+    let stages = completed_stages(status(state.build_status()));
     let mut action = Action::None;
     if !running {
         if problems.is_empty() {
-            ui.label(RichText::new(t.t("forge-ready")).strong());
+            ui.label(RichText::new(t.t("forge-ready")).strong().color(pal.ok));
         } else {
-            ui.label(RichText::new(t.t("forge-build-blocked")).strong());
+            ui.label(RichText::new(t.t("forge-build-blocked")).strong().color(pal.text));
             for p in &problems {
-                ui.label(format!("• {}", problem_text(t, p)));
+                ui.label(RichText::new(format!("• {}", problem_text(t, p))).color(pal.muted));
                 if let Problem::Output(OutputProblem::Unresolved(detail)) = p {
                     views::details(ui, t, "forge-output-details", detail);
                 }
             }
         }
-        ui.add_space(6.0);
+        ui.add_space(8.0);
     }
-    let button = egui::Button::new(RichText::new(t.t("forge-build")).strong());
-    if ui.add_enabled(build_enabled(&problems, running), button).clicked() {
+    let enabled = build_enabled(&problems, running);
+    let label = RichText::new(t.t("forge-build")).strong().size(15.0);
+    let button = if enabled {
+        egui::Button::new(label.color(pal.card)).fill(pal.seam).min_size(egui::vec2(140.0, 32.0))
+    } else {
+        egui::Button::new(label).min_size(egui::vec2(140.0, 32.0))
+    };
+    if ui.add_enabled(enabled, button).clicked() {
         action = Action::Build;
     }
-    ui.add_space(6.0);
+    ui.add_space(8.0);
     match state.build_status() {
         BuildStatus::Idle => {}
         BuildStatus::Running(req) => {
             ui.horizontal_wrapped(|ui| {
                 ui.spinner();
-                ui.label(t.ta("forge-building", &[("path", req.out.display().to_string().into())]));
+                let path = req.out.display().to_string();
+                ui.label(
+                    RichText::new(t.ta("forge-building", &[("path", path.into())])).strong().color(pal.text),
+                );
             });
-            ui.label(RichText::new(t.t("forge-locked")).weak());
+            muted(ui, pal, t.t("forge-building-includes"));
+            muted(ui, pal, t.t("forge-locked"));
         }
         BuildStatus::Done(Ok(built)) => {
-            if success(ui, t, built) {
+            if success(ui, t, pal, built, stages) {
                 action = Action::Open(built.out.clone());
             }
         }
         BuildStatus::Done(Err(BuildError::Refused(p))) => {
-            let color = ui.visuals().error_fg_color;
-            ui.label(RichText::new(t.t("forge-build-refused")).strong().color(color));
-            ui.label(problem_text(t, &Problem::Output(p.clone())));
+            ui.label(RichText::new(t.t("forge-build-refused")).strong().color(pal.error));
+            ui.label(RichText::new(problem_text(t, &Problem::Output(p.clone()))).color(pal.text));
         }
         BuildStatus::Done(Err(BuildError::Failed { failure, recipe, log })) => {
-            failure_box(ui, t, t.t("forge-build-failed"), failure, "forge-build-failure");
+            failure_box(ui, t, pal, t.t("forge-build-failed"), failure, "forge-build-failure");
             if recipe.is_some() || log.is_some() {
-                ui.label(RichText::new(t.t("forge-build-failed-kept")).weak());
+                muted(ui, pal, t.t("forge-build-failed-kept"));
                 for p in recipe.iter().chain(log) {
                     path_row(ui, p);
                 }
@@ -85,22 +126,29 @@ fn problem_text(t: &I18n, p: &Problem) -> String {
 }
 
 /// The verified result with every file written next to it; returns true when "Open" was clicked.
-fn success(ui: &mut egui::Ui, t: &I18n, b: &Built) -> bool {
-    let color = ui.visuals().hyperlink_color;
+fn success(ui: &mut egui::Ui, t: &I18n, pal: Palette, b: &Built, stages: &[&str]) -> bool {
     egui::Frame::new()
-        .stroke(Stroke::new(1.0, color))
-        .corner_radius(CornerRadius::same(6))
-        .inner_margin(Margin::same(8))
+        .fill(pal.tint(pal.ok))
+        .stroke(Stroke::new(1.0, pal.ok))
+        .corner_radius(6)
+        .inner_margin(10)
         .show(ui, |ui| {
             ui.set_width(ui.available_width());
-            ui.label(RichText::new(t.t("forge-build-ok")).strong().color(color));
-            ui.label(RichText::new(t.t("forge-build-ok-note")).weak());
+            ui.label(RichText::new(t.t("forge-build-ok")).strong().size(15.0).color(pal.ok));
+            ui.horizontal_wrapped(|ui| {
+                ui.label(RichText::new(t.t("forge-stages-done")).color(pal.muted));
+                for key in stages {
+                    check(ui, pal);
+                    ui.label(RichText::new(t.t(key)).color(pal.text));
+                }
+            });
+            muted(ui, pal, t.t("forge-build-ok-note"));
             ui.add_space(4.0);
-            stat_path(ui, t.t("forge-result-model"), &b.out);
-            stat_path(ui, t.t("forge-result-recipe"), &b.recipe);
-            stat_path(ui, t.t("forge-result-lock"), &b.lock);
+            stat_path(ui, pal, t.t("forge-result-model"), &b.out);
+            stat_path(ui, pal, t.t("forge-result-recipe"), &b.recipe);
+            stat_path(ui, pal, t.t("forge-result-lock"), &b.lock);
             match &b.log {
-                Some(log) => stat_path(ui, t.t("forge-result-log"), log),
+                Some(log) => stat_path(ui, pal, t.t("forge-result-log"), log),
                 None => {
                     views::stat(ui, t.t("forge-result-log"), t.t("forge-result-log-missing"));
                 }
@@ -108,21 +156,19 @@ fn success(ui: &mut egui::Ui, t: &I18n, b: &Built) -> bool {
             views::stat(ui, t.t("overview-tensors"), b.tensors.to_string());
             views::stat(ui, t.t("overview-parameters"), t.count(b.params))
                 .on_hover_text(b.params.to_string());
-            views::stat(ui, t.t("forge-preview-from-base"), b.planned.from_base.to_string());
-            views::stat(ui, t.t("forge-preview-from-donor"), b.planned.from_donor.to_string());
             for w in &b.warnings {
                 ui.label(RichText::new(w).monospace().small());
             }
-            ui.add_space(4.0);
-            ui.button(t.t("forge-open-result")).clicked()
+            ui.add_space(6.0);
+            ui.button(RichText::new(t.t("forge-open-result")).strong()).clicked()
         })
         .inner
 }
 
 /// Paths are selectable so they can be copied.
-fn stat_path(ui: &mut egui::Ui, label: String, path: &Path) {
+fn stat_path(ui: &mut egui::Ui, pal: Palette, label: String, path: &Path) {
     ui.horizontal_wrapped(|ui| {
-        ui.label(RichText::new(label).weak());
+        ui.label(RichText::new(label).color(pal.muted));
         path_row(ui, path);
     });
 }
@@ -130,3 +176,7 @@ fn stat_path(ui: &mut egui::Ui, label: String, path: &Path) {
 fn path_row(ui: &mut egui::Ui, path: &Path) {
     ui.add(egui::Label::new(RichText::new(path.display().to_string()).monospace()).selectable(true));
 }
+
+#[cfg(test)]
+#[path = "tests/build_view.rs"]
+mod tests;
