@@ -14,6 +14,7 @@ use crate::forge::steps::{Mark, TITLES};
 use crate::inspected::ConfigProblem;
 use crate::inspector::Mode;
 use crate::learn::{Explanation, STEPS};
+use crate::preflight::state as pf;
 use crate::presentation::Presentation;
 use crate::semantics::{Basis, DIM_KEYS, Group, Role};
 use crate::structure::{group_keys, role_keys};
@@ -86,6 +87,12 @@ fn every_key_used_by_the_code_exists_in_english() {
     used.extend(keys_used(include_str!("../forge/mod.rs")));
     used.extend(keys_used(include_str!("../forge/build_view.rs")));
     used.extend(keys_used(include_str!("../forge/schema_view.rs")));
+    used.extend(keys_used(include_str!("../preflight/mod.rs")));
+    used.extend(pf::STATUSES.iter().flat_map(|s| <[&str; 2]>::from(pf::status_keys(*s))));
+    used.extend(pf::RESOURCES.map(pf::resource_key));
+    used.extend(pf::PARTS.map(pf::part_key));
+    used.extend(pf::ASSUMPTIONS.map(pf::assumption_key));
+    used.extend(pf::ADVICE.map(pf::advice_key));
     // Forge passes keys through helpers and tables, so they are listed explicitly.
     used.extend(Workspace::ALL.map(Workspace::message_key));
     used.extend(Transfer::ALL.map(Transfer::message_key));

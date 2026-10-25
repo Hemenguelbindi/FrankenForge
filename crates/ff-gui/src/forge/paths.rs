@@ -14,6 +14,8 @@ pub enum OutputProblem {
     InsideSource,
     /// The location cannot be resolved (missing drive, no access).
     Unresolved(String),
+    /// Hardware Preflight: the volume has less free space than the result needs.
+    NoSpace { need: u64, available: u64 },
 }
 
 pub const RECIPE: &str = ".recipe.toml";

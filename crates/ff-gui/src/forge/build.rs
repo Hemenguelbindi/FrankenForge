@@ -13,7 +13,10 @@ use ff_io::Safetensors;
 use ff_surgery::build::{self, BuildReport};
 use ff_surgery::lock::Lock;
 
+use ff_preflight::{Known, PreflightStatus, probe};
+
 use super::paths::{self, OutputProblem};
+use super::readiness::disk_status;
 use super::state::{Preview, Selection, recipe};
 use crate::failure::Failure;
 use crate::loader::Outcome;
@@ -59,6 +62,13 @@ fn build(req: &BuildRequest) -> BuildResult {
     let pair = &req.selection.pair;
     // The cached readiness check is not enough: the disk may have changed since.
     paths::check_output(&req.out, &[&pair.base, &pair.donor]).map_err(BuildError::Refused)?;
+    // A known shortage of free space refuses now; Unknown proceeds and the core still fails closed.
+    let available = probe::disk_available(&req.out);
+    if let (PreflightStatus::Insufficient, need) = disk_status(req.preview.output_bytes, &req.out, &available)
+        && let Known::Known(available) = available
+    {
+        return Err(BuildError::Refused(OutputProblem::NoSpace { need, available }));
+    }
 
     let failed = |e: &Error, recipe: Option<PathBuf>, log: Option<PathBuf>| BuildError::Failed {
         failure: Failure::from_error(e),

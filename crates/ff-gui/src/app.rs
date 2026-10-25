@@ -11,6 +11,7 @@ use crate::inspected::Inspected;
 use crate::inspector::{self, InspectorState, Mode};
 use crate::learn::{self, LearnState};
 use crate::loader::Loader;
+use crate::preflight::{self, PreflightUi};
 use crate::presentation::{Presentation, initial_presentation};
 use crate::structure;
 use crate::views::{self, component_tree, config, details, hits};
@@ -42,6 +43,7 @@ pub struct App {
     persist_lang: bool,
     workspace: Workspace,
     forge: ForgeUi,
+    preflight: PreflightUi,
     inspected: Option<Inspected>,
     loader: Loader<PathBuf, Inspected>,
     error: Option<OpenError>,
@@ -76,6 +78,7 @@ impl App {
             persist_lang: forced.is_none(),
             workspace: Workspace::default(),
             forge: ForgeUi::default(),
+            preflight: PreflightUi::default(),
             inspected: None,
             loader: Loader::default(),
             error: None,
@@ -216,6 +219,9 @@ impl eframe::App for App {
         self.apply_finished();
         egui::Panel::top("toolbar").show(ui, |ui| self.toolbar(ui));
 
+        if self.workspace == Workspace::Preflight {
+            return preflight::show(ui, &self.t, &mut self.preflight);
+        }
         if self.workspace == Workspace::Forge {
             if let Some(path) = forge::show(ui, &self.t, &mut self.forge) {
                 self.workspace = Workspace::Inspector;

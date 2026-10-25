@@ -8,7 +8,7 @@ fn request() -> super::super::build::BuildRequest {
     super::super::build::BuildRequest {
         selection: Selection { pair: Pair { base: "b".into(), donor: "d".into() }, blocks: vec![] },
         out: "out".into(),
-        preview: Preview { from_base: 1, from_donor: 1, notes: vec![] },
+        preview: Preview { from_base: 1, from_donor: 1, notes: vec![], output_bytes: 0 },
     }
 }
 

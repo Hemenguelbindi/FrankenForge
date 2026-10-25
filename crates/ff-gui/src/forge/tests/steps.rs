@@ -10,7 +10,7 @@ use crate::forge::readiness::{Checks, Inputs};
 use crate::forge::state::Preview;
 
 fn fine(i: &Inputs) -> Checks {
-    Checks { same_model: false, output: i.out_dir.as_ref().map(|_| Ok(())) }
+    Checks { same_model: false, output: i.out_dir.as_ref().map(|_| Ok(())), disk: None }
 }
 
 fn analysis(tokenizer: TokenizerMatch) -> Analysis {
@@ -51,7 +51,7 @@ fn the_strip_advances_with_each_real_choice() {
     f.toggle(&BlockId { stack: "m".into(), index: 0 });
     assert_eq!(now(&mut f), [Done, Done, Current, Waiting], "preview not back yet");
     let sel = f.selection().unwrap();
-    f.apply_preview(sel, Ok(Preview { from_base: 0, from_donor: 1, notes: vec![] }));
+    f.apply_preview(sel, Ok(Preview { from_base: 0, from_donor: 1, notes: vec![], output_bytes: 0 }));
     assert_eq!(now(&mut f), [Done, Done, Done, Waiting], "no output chosen");
     f.set_out_dir("out".into());
     f.set_out_name("x".into());
@@ -96,7 +96,7 @@ fn a_failed_build_is_attention_not_done() {
     f.apply_analysis(f.pair().unwrap(), Ok(analysis(TokenizerMatch::Identical)));
     f.toggle(&BlockId { stack: "m".into(), index: 0 });
     let sel = f.selection().unwrap();
-    f.apply_preview(sel, Ok(Preview { from_base: 0, from_donor: 1, notes: vec![] }));
+    f.apply_preview(sel, Ok(Preview { from_base: 0, from_donor: 1, notes: vec![], output_bytes: 0 }));
     f.set_out_dir("out".into());
     let req = f.begin_build_with(fine).unwrap();
     f.finish_build(req, Err(Failure::crashed()));

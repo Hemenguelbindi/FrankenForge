@@ -17,6 +17,7 @@ mod inspected;
 mod inspector;
 mod learn;
 mod loader;
+mod preflight;
 mod presentation;
 mod semantics;
 mod structure;

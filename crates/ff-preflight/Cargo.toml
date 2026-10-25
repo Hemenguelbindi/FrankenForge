@@ -1,0 +1,10 @@
+[package]
+name = "ff-preflight"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+ff-core.workspace = true
+serde_json.workspace = true
+sysinfo.workspace = true

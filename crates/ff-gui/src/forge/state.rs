@@ -4,11 +4,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 
+use ff_preflight::{Known, PreflightStatus};
 use ff_surgery::compare::TokenizerMatch;
 use ff_surgery::{Recipe, Step};
 
 use super::analysis::{Analysis, BlockId};
 use super::build::{BuildError, BuildRequest, BuildResult};
+use super::paths::OutputProblem;
 use super::readiness::{self, Checks, Inputs, Problem};
 use crate::loader::Outcome;
 
@@ -55,6 +57,8 @@ pub struct Preview {
     pub from_donor: usize,
     /// Planner notes (config.json changes, warnings), shown as the core wrote them.
     pub notes: Vec<String>,
+    /// Weights plus companion files of the result, for the disk preflight.
+    pub output_bytes: u64,
 }
 
 #[derive(Debug, Default)]
@@ -287,9 +291,24 @@ impl Forge {
         match &checks.output {
             None => out.push(Problem::NeedOutput),
             Some(Err(p)) => out.push(Problem::Output(p.clone())),
-            Some(Ok(())) => {}
+            // A known shortage blocks; Unknown or Tight free space is shown, not hidden or blocking.
+            Some(Ok(())) => {
+                if let Some((PreflightStatus::Insufficient, need, Known::Known(available))) = self.disk() {
+                    out.push(Problem::Output(OutputProblem::NoSpace { need, available }));
+                }
+            }
         }
         out
+    }
+
+    /// Hardware Preflight for the build's disk, from the cached free space: no I/O here.
+    pub fn disk(&self) -> Option<(PreflightStatus, u64, Known<u64>)> {
+        let (inputs, checks) = self.checks.as_ref()?;
+        let available = checks.disk.clone()?;
+        let preview = self.preview()?.as_ref().ok()?;
+        let (status, need) =
+            readiness::disk_status(preview.output_bytes, inputs.out_dir.as_ref()?, &available);
+        Some((status, need, available))
     }
 }
 

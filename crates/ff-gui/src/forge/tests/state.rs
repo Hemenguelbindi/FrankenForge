@@ -44,12 +44,47 @@ fn analyzed(base: &str, donor: &str) -> Forge {
 }
 
 fn preview(from_base: usize, from_donor: usize) -> Preview {
-    Preview { from_base, from_donor, notes: Vec::new() }
+    Preview { from_base, from_donor, notes: Vec::new(), output_bytes: 1024 }
 }
 
 /// Disk checks stand-in: distinct models, output location fine once chosen.
 fn fine(i: &Inputs) -> Checks {
-    Checks { same_model: false, output: i.out_dir.as_ref().map(|_| Ok(())) }
+    Checks { same_model: false, output: i.out_dir.as_ref().map(|_| Ok(())), disk: None }
+}
+
+/// Everything ready except that the output volume reports `free`.
+fn ready_with_disk(free: Known<u64>) -> (Forge, Vec<Problem>) {
+    let mut f = analyzed("b", "d");
+    f.toggle(&block(0));
+    let sel = f.selection().unwrap();
+    let gib = 1024 * 1024 * 1024;
+    f.apply_preview(sel, Ok(Preview { from_base: 7, from_donor: 1, notes: vec![], output_bytes: gib }));
+    f.set_out_dir("out".into());
+    f.set_out_name("x".into());
+    let problems = f.problems_with(|i| Checks { disk: Some(free), ..fine(i) });
+    (f, problems)
+}
+
+#[test]
+fn a_known_disk_shortage_blocks_the_build() {
+    let (f, problems) = ready_with_disk(Known::Known(512 * 1024 * 1024));
+    assert!(
+        matches!(problems[..], [Problem::Output(OutputProblem::NoSpace { available, .. })] if available == 512 * 1024 * 1024),
+        "{problems:?}"
+    );
+    assert_eq!(f.disk().unwrap().0, PreflightStatus::Insufficient);
+}
+
+#[test]
+fn unknown_free_space_is_shown_but_does_not_claim_a_fit() {
+    let (f, problems) = ready_with_disk(Known::unknown("volume not found"));
+    assert!(problems.is_empty(), "unknown space does not block; the core still fails closed");
+    let (status, _, available) = f.disk().unwrap();
+    assert_eq!(status, PreflightStatus::Unknown);
+    assert!(matches!(available, Known::Unknown(_)));
+    let (f, problems) = ready_with_disk(Known::Known(100 * 1024 * 1024 * 1024));
+    assert!(problems.is_empty());
+    assert_eq!(f.disk().unwrap().0, PreflightStatus::Fits);
 }
 
 #[test]

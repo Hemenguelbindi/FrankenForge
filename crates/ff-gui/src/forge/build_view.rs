@@ -5,6 +5,7 @@
 use std::path::{Path, PathBuf};
 
 use eframe::egui::{self, RichText, Stroke};
+use ff_preflight::{Known, PreflightStatus};
 
 use super::build::{BuildError, Built};
 use super::palette::Palette;
@@ -70,6 +71,7 @@ pub fn section(ui: &mut egui::Ui, t: &I18n, pal: Palette, state: &mut Forge) -> 
         }
         ui.add_space(8.0);
     }
+    disk_line(ui, t, pal, state);
     let enabled = build_enabled(&problems, running);
     let label = RichText::new(t.t("forge-build")).strong().size(15.0);
     let button = if enabled {
@@ -121,8 +123,35 @@ fn problem_text(t: &I18n, p: &Problem) -> String {
         Problem::Output(OutputProblem::Exists(path)) => {
             t.ta(p.message_key(), &[("path", path.display().to_string().into())])
         }
+        Problem::Output(OutputProblem::NoSpace { need, available }) => t.ta(
+            p.message_key(),
+            &[("need", t.bytes(*need).into()), ("available", t.bytes(*available).into())],
+        ),
         _ => t.t(p.message_key()),
     }
+}
+
+/// Hardware Preflight for the build's disk, from cached facts; Unknown is said, never hidden.
+fn disk_line(ui: &mut egui::Ui, t: &I18n, pal: Palette, state: &Forge) {
+    let Some((status, need, available)) = state.disk() else { return };
+    let (color, word) = match status {
+        PreflightStatus::Fits => (pal.ok, "pf-status-fits"),
+        PreflightStatus::Tight => (pal.donor, "pf-status-tight"),
+        PreflightStatus::Insufficient => (pal.error, "pf-status-insufficient"),
+        PreflightStatus::Unknown => (pal.muted, "pf-status-unknown"),
+    };
+    let text = match &available {
+        Known::Known(free) => {
+            t.ta("forge-disk-line", &[("need", t.bytes(need).into()), ("available", t.bytes(*free).into())])
+        }
+        Known::Unknown(why) => {
+            t.ta("forge-disk-unknown", &[("need", t.bytes(need).into()), ("why", why.clone().into())])
+        }
+    };
+    ui.horizontal_wrapped(|ui| {
+        ui.label(RichText::new(t.t(word)).strong().color(color));
+        ui.label(RichText::new(text).color(pal.text));
+    });
 }
 
 /// The verified result with every file written next to it; returns true when "Open" was clicked.

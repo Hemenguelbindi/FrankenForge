@@ -10,15 +10,18 @@ pub enum Workspace {
     #[default]
     Inspector,
     Forge,
+    /// Hardware Preflight: resource estimates, nothing is loaded or built.
+    Preflight,
 }
 
 impl Workspace {
-    pub const ALL: [Workspace; 2] = [Workspace::Inspector, Workspace::Forge];
+    pub const ALL: [Workspace; 3] = [Workspace::Inspector, Workspace::Forge, Workspace::Preflight];
 
     pub fn message_key(self) -> &'static str {
         match self {
             Workspace::Inspector => "workspace-inspector",
             Workspace::Forge => "workspace-forge",
+            Workspace::Preflight => "workspace-preflight",
         }
     }
 }

@@ -31,7 +31,8 @@ ff-cli  →  ff-surgery  →  ff-core  ←  ff-io
 | `ff-io` | format adapters implementing the ports (safetensors today) | `ff-core` |
 | `ff-surgery` | use cases: recipe → `Plan` → `ops` → build → verify → lock | `ff-core` only — **never `ff-io`** |
 | `ff-cli` | composition root: picks the format, calls use cases, prints | everything |
-| `ff-gui` | composition root: egui/eframe Inspector (read-only, metadata only, no inference) and Forge (builds through ff-surgery) | `ff-core`, `ff-io`, `ff-surgery` |
+| `ff-preflight` | Hardware Preflight: resource estimates (`estimate`, `report`, pure) and the machine snapshot (`probe`, the only module with system access) | `ff-core`, `serde_json`, `sysinfo` |
+| `ff-gui` | composition root: egui/eframe Inspector (read-only, metadata only, no inference), Forge (builds through ff-surgery) and Preflight | `ff-core`, `ff-io`, `ff-surgery`, `ff-preflight` |
 
 Rules:
 - `ff-surgery` works through `&dyn ModelFormat` / `&dyn TensorSource`. Need a format feature there?
@@ -39,6 +40,9 @@ Rules:
 - Planning touches metadata only. Weights are read only in `build::build`, one tensor at a time via
   the `fetch` callback — never load a whole model into memory.
 - `ff-cli` holds no logic beyond argument parsing and printing.
+- `ff-preflight` estimates, it never proves: Unknown stays `Known::Unknown` (never 0, never Fits), every
+  estimate lists its parts and `Assumption`s, sizes come from the selected tensors of a real header.
+  Hardware/disk are read only through `probe`, off the UI thread and never per frame.
 - `ff-gui` Inspector only displays: opening goes through `ModelFormat::open` (headers only), structure
   through `Model::layout`. Forge calls ff-surgery use cases (`compare::run`, `build::plan`,
   `build::build`) and never duplicates them. No parsing, surgery or compare logic of its own; view

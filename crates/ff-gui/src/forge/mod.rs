@@ -9,14 +9,14 @@ pub(crate) mod build_view;
 mod composition;
 mod jobs;
 pub(crate) mod mismatch;
-mod palette;
+pub(crate) mod palette;
 mod paths;
 pub(crate) mod readiness;
 pub(crate) mod schema;
 mod schema_view;
 mod state;
 pub(crate) mod steps;
-mod widgets;
+pub(crate) mod widgets;
 
 use std::path::PathBuf;
 

@@ -3,6 +3,10 @@
 
 use std::path::{Path, PathBuf};
 
+use ff_preflight::{
+    BuildRequest, Known, PreflightStatus, Resource, ResourceRequest, estimate, probe, report,
+};
+
 use super::paths::{self, OutputProblem};
 
 /// Everything the disk checks depend on.
@@ -19,9 +23,12 @@ pub struct Checks {
     pub same_model: bool,
     /// `None` until an output location is chosen.
     pub output: Option<Result<(), OutputProblem>>,
+    /// Free space on the output volume; `None` until an output location is chosen.
+    pub disk: Option<Known<u64>>,
 }
 
-/// Reads the file system: resolves both models and checks that the output is new and outside them.
+/// Reads the file system: resolves both models, checks that the output is new and outside them,
+/// and reads the free space of the output volume.
 pub fn check(i: &Inputs) -> Checks {
     let same_model = match (&i.base, &i.donor) {
         (Some(b), Some(d)) => match (paths::resolve(b), paths::resolve(d)) {
@@ -37,7 +44,15 @@ pub fn check(i: &Inputs) -> Checks {
         let sources: Vec<&Path> = i.base.iter().chain(&i.donor).map(PathBuf::as_path).collect();
         paths::check_output(&dir.join(&i.out_name), &sources)
     });
-    Checks { same_model, output }
+    let disk = i.out_dir.as_deref().map(probe::disk_available);
+    Checks { same_model, output, disk }
+}
+
+/// Hardware Preflight for the build's disk: the result in `.partial` plus a reserve.
+pub fn disk_status(output_bytes: u64, out_dir: &Path, available: &Known<u64>) -> (PreflightStatus, u64) {
+    let req = ResourceRequest::Build(BuildRequest { output_bytes, out_dir: out_dir.to_owned() });
+    let need = estimate(&req).need(Resource::Disk);
+    (report::check(&need, available, report::margin(Resource::Disk)), need.span.high)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -57,7 +72,7 @@ pub enum Problem {
 
 impl Problem {
     #[cfg(test)]
-    pub const KEYS: [&str; 14] = [
+    pub const KEYS: [&str; 15] = [
         "forge-need-base",
         "forge-need-donor",
         "forge-same-model",
@@ -72,6 +87,7 @@ impl Problem {
         "forge-output-exists",
         "forge-output-inside-source",
         "forge-output-unresolved",
+        "forge-output-no-space",
     ];
 
     pub fn message_key(&self) -> &'static str {
@@ -90,6 +106,7 @@ impl Problem {
             Problem::Output(OutputProblem::Exists(_)) => "forge-output-exists",
             Problem::Output(OutputProblem::InsideSource) => "forge-output-inside-source",
             Problem::Output(OutputProblem::Unresolved(_)) => "forge-output-unresolved",
+            Problem::Output(OutputProblem::NoSpace { .. }) => "forge-output-no-space",
         }
     }
 }

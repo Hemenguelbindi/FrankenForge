@@ -39,12 +39,30 @@ fn setup(name: &str) -> (PathBuf, Pair) {
 
 fn request(pair: &Pair, index: usize, out: PathBuf) -> BuildRequest {
     let blocks = vec![BlockId { stack: "model.layers".into(), index }];
-    let preview = Preview { from_base: 2, from_donor: 1, notes: Vec::new() };
+    let preview = Preview { from_base: 2, from_donor: 1, notes: Vec::new(), output_bytes: 1024 };
     BuildRequest { selection: Selection { pair: pair.clone(), blocks }, out, preview }
 }
 
 fn hashes(pair: &Pair) -> (String, String) {
     (hash_path(&pair.base).unwrap(), hash_path(&pair.donor).unwrap())
+}
+
+#[test]
+fn a_known_disk_shortage_refuses_before_any_write() {
+    let (d, pair) = setup("nospace");
+    let out = d.join("forged");
+    let mut req = request(&pair, 1, out.clone());
+    // No real volume has an exabyte free: the fresh check right before writing refuses.
+    req.preview.output_bytes = 1 << 60;
+    let err = run(&req).unwrap().unwrap_err();
+    assert!(
+        matches!(err, BuildError::Refused(OutputProblem::NoSpace { need, .. }) if need >= 1 << 60),
+        "{err:?}"
+    );
+    for p in paths::artifacts(&out) {
+        assert!(!p.exists(), "{} was written", p.display());
+    }
+    fs::remove_dir_all(&d).unwrap();
 }
 
 #[test]

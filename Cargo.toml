@@ -13,11 +13,13 @@ license = "Apache-2.0"
 ff-core = { path = "crates/ff-core" }
 ff-io = { path = "crates/ff-io" }
 ff-surgery = { path = "crates/ff-surgery" }
+ff-preflight = { path = "crates/ff-preflight" }
 clap = { version = "4", features = ["derive"] }
 eframe = { version = "0.37", features = ["persistence"] }
 fluent-bundle = "0.16"
 rfd = "0.17"
 sys-locale = "0.3"
+sysinfo = { version = "=0.39.6", default-features = false, features = ["system", "disk"] }
 ttf-parser = "0.25"
 unic-langid = "0.9"
 serde = { version = "1", features = ["derive"] }
