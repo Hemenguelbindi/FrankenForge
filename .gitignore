@@ -1,0 +1,27 @@
+# build output
+/target
+
+# build/verification artifacts: never commit these
+*.partial
+*.lock.json
+
+# models and checkpoints
+/models/
+*.safetensors
+*.gguf
+*.bin
+*.pth
+
+# local settings
+.vscode/
+.idea/
+.env
+
+# scratch
+/scratch/
+*.scratch.*
+*.log
+.DS_Store
+Thumbs.db
+
+# Cargo.lock IS tracked: FrankenForge ships binaries (ff-gui, frankenforge).

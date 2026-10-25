@@ -1,0 +1,3 @@
+﻿# Pins the existing style: long lines, no extra wrapping.
+max_width = 110
+use_small_heuristics = "Max"

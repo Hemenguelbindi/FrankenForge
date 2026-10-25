@@ -1,0 +1,349 @@
+# Simplified Chinese. Missing messages fall back to English.
+
+## Toolbar
+toolbar-open-file = 打开文件…
+toolbar-open-folder = 打开文件夹…
+toolbar-opening = 正在打开 { $path }…
+toolbar-theme = 主题
+toolbar-theme-dark = 深色
+toolbar-theme-light = 浅色
+toolbar-language = 界面语言
+dialog-open-file = 打开 safetensors 检查点文件
+dialog-open-folder = 打开检查点文件夹
+
+## Empty state
+welcome-title = 查看模型检查点
+welcome-body = 打开 .safetensors 文件或检查点文件夹。只读取元数据：不会加载权重，也不会运行任何内容。
+
+## Errors
+error-open-title = 无法打开 { $path }
+error-not-found = 文件或文件夹不存在（可能已被移动或删除）。
+error-permission = 访问被拒绝。请确认你有权限读取此文件或文件夹。
+error-io = 无法从磁盘读取该文件。
+error-format = 这不是有效的 safetensors 检查点，或者文件已损坏。文件夹中必须包含 .safetensors 文件。
+error-unknown = 无法打开该检查点。
+error-crashed = 由于内部错误，打开过程意外中止。
+error-details = 技术细节
+error-dismiss = 关闭
+startup-failed = FrankenForge 无法打开窗口。这通常表示显卡驱动或 GPU 不可用（例如通过远程桌面连接时）。
+
+## Model Overview
+overview-title = 模型概览
+overview-parameters = 参数量
+overview-tensors = 张量数
+overview-weight-types = 权重类型
+overview-components = 组成部分
+overview-config = 配置（config.json）
+count-thousand = { $value } 千
+count-million = { $value } 百万
+count-billion = { $value } 十亿
+number-decimal-separator = { "." }
+
+## Components
+component-language = 语言
+component-audio = 音频
+component-vision = 视觉
+component-other = 其他
+component-language-purpose = 模型的主要语言部分：由重复的层组成，读取文本词元并预测下一个词元。
+component-audio-purpose = 将声音转换为语言部分可以使用的特征。依据名称中的单词“audio”识别。
+component-vision-purpose = 将图像转换为语言部分可以使用的特征。依据名称中的“vision”/“visual”识别。
+component-other-purpose = 名称无法说明作用的权重：没有语言、音频或视觉线索的重复块，以及块之外的张量。
+card-blocks = { $blocks } 个块 · { $params }
+card-tensors = { $tensors } 个张量 · { $params }
+card-loose = + 块之外的 { $count } 个张量
+stack-blocks = { $name } — { $count } 个块
+
+## Component tree
+tree-explainer = Block（块）是模型中重复出现的部分；tensor（张量）是带名称的权重数组。
+tree-block = 块 { $index } · { $count } 个张量
+tree-loose = 块之外 — { $count } 个张量
+tree-select = 请在左侧选择一个组成部分。
+grid-name = 名称
+grid-type = 类型
+grid-shape = 形状
+
+## Search
+search-hint = 按名称搜索所有张量
+search-matches = { $count } 个匹配项
+
+## config.json
+config-missing = 检查点所在的文件夹中没有 config.json。
+config-source = 读取自 { $path }
+config-too-large = config.json 过大（超过 1 MB），未予读取。模型本身已正常打开。
+config-not-json = config.json 不是有效的 JSON，因此不予显示。模型本身已正常打开。
+config-unreadable = 无法从磁盘读取 config.json。模型本身已正常打开。
+
+## Tensor Inspector
+inspector-title = 张量检查器
+mode-simple = 简单
+mode-expert = 专业
+inspector-close = 关闭
+inspector-belongs = 所属位置
+inspector-block = { $stack }，块 { $index }
+inspector-outside-blocks = 位于重复块之外
+inspector-shape = 形状
+inspector-dim = 维度 { $index }：{ $size }
+inspector-scalar = 单个数值（没有维度）。
+inspector-shape-unknown = 无法确定该张量各维度的含义。
+inspector-technical = 技术信息
+inspector-rule-basis = 规则依据
+inspector-inferred-human = 用途是根据名称推断的；该架构没有精确规则。
+inspector-dtype = 数据类型
+inspector-elements = 元素数
+inspector-size = 大小
+inspector-bias = { $title } — 偏置（bias）
+size-bytes = { $value } 字节
+size-kib = { $value } KiB
+size-mib = { $value } MiB
+size-gib = { $value } GiB
+
+## Basis of an explanation
+basis-confirmed = 已确认
+basis-confirmed-hint = 已确认：config.json 声明了“{ $arch }”架构，而该架构正是用这个确切的张量路径命名这一部分。
+basis-inferred = 推断
+basis-inferred-hint = 推断：根据张量名称做出的猜测。此处没有该架构的精确规则，或缺少 config.json，因此名称也可能有其他含义。
+basis-unknown = 未知
+basis-unknown-hint = 未知：没有规则能识别此名称，因此不对其用途作出任何断言。
+
+## Groups inside a block
+group-attention = 注意力
+group-mlp = MLP
+group-experts = 专家
+group-normalization = 归一化
+group-other = 其他
+
+## Dimensions
+dim-hidden = 模型宽度（hidden_size）
+dim-vocab = 词表大小（vocab_size）
+dim-heads-x-head-dim = 注意力头数 × 头大小
+dim-kv-heads-x-head-dim = 键/值头数 × 头大小
+dim-head-dim = 单个注意力头的大小（head_dim）
+dim-intermediate = MLP 宽度（intermediate_size）
+dim-moe-intermediate = 专家 MLP 宽度（moe_intermediate_size）
+dim-shared-intermediate = 共享专家宽度（shared_expert_intermediate_size）
+dim-experts = 专家数量
+dim-basis-confirmed-hint = 已确认：config.json 声明的大小与该维度一致。
+dim-basis-inferred-hint = 推断：含义来自张量名称，config.json 无法验证。
+dim-basis-unknown-hint = 未知：config.json 与该维度矛盾，或名称和形状都无法说明其含义。
+
+## Roles
+role-token-embedding = 词元嵌入
+role-token-embedding-desc = 词表中每个词元对应一行的表：把每个输入词元转换为模型处理的向量。
+role-position-embedding = 位置嵌入
+role-position-embedding-desc = 加入元素在序列或图像中所处位置的信息。
+role-attn-q = 注意力：查询（Q）
+role-attn-q-desc = 把每个词元转换为“查询”，与其他词元的键进行比较，以决定关注哪里。
+role-attn-k = 注意力：键（K）
+role-attn-k-desc = 把词元转换为供查询比较的“键”。
+role-attn-v = 注意力：值（V）
+role-attn-v-desc = 把词元转换为“值”：在注意力决定关注哪里之后传递下去的信息。
+role-attn-o = 注意力：输出（O）
+role-attn-o-desc = 把所有注意力头的结果合并回模型宽度。
+role-attn-qkv = 注意力：合并的 Q、K、V
+role-attn-qkv-desc = 查询、键和值三个投影合并存放在同一个矩阵中。
+role-q-norm = 查询归一化
+role-q-norm-desc = 在与键比较之前缩放每个注意力头的查询，使注意力分数保持稳定。
+role-k-norm = 键归一化
+role-k-norm-desc = 在与查询比较之前缩放每个注意力头的键，使注意力分数保持稳定。
+role-mlp-gate = MLP：门控投影（gate）
+role-mlp-gate-desc = 前馈网络的一部分：逐个特征决定 up 投影的结果有多少可以通过。
+role-mlp-up = MLP：升维投影（up）
+role-mlp-up-desc = 前馈网络的一部分：把每个词元的向量扩展到更宽的空间。
+role-mlp-down = MLP：降维投影（down）
+role-mlp-down-desc = 前馈网络的一部分：把结果变回模型宽度。
+role-mlp-gate-up = MLP：合并的 gate 与 up 投影
+role-mlp-gate-up-desc = 前馈网络的 gate 与 up 投影合并存放在同一个矩阵中。
+role-moe-router = MoE 路由器
+role-moe-router-desc = 为每个词元给每个专家打分；只有得分最高的少数专家处理该词元。
+role-expert-gate = 专家 { $index }：gate 投影
+role-expert-up = 专家 { $index }：up 投影
+role-expert-down = 专家 { $index }：down 投影
+role-expert-gate-up = 专家 { $index }：合并的 gate 与 up 投影
+role-expert-desc = 多个并行前馈网络（“专家”）之一；路由器只把部分词元送给它。无法从权重中读出某个专家负责哪些主题或技能。
+role-shared-expert-gate = 共享专家：gate 投影
+role-shared-expert-up = 共享专家：up 投影
+role-shared-expert-down = 共享专家：down 投影
+role-shared-expert-gate-up = 共享专家：合并的 gate 与 up 投影
+role-shared-expert-desc = 除路由器选中的专家之外，还会处理每个词元的前馈网络。
+role-shared-expert-router = 共享专家门控
+role-shared-expert-router-desc = 为每个词元决定加入多少共享专家的输出。
+role-norm = 归一化
+role-norm-desc = 把向量缩放到稳定的大小；这些数值是逐特征的缩放系数。
+role-final-norm = 最终归一化
+role-final-norm-desc = 在输出头之前对最后的隐藏状态进行归一化。
+role-output-head = 输出头
+role-output-head-desc = 把最终向量转换为词表中每个词元的得分，即预测下一个词元。
+role-projector = 投影器
+role-projector-desc = 把模型其他部分（图像或音频编码器）的特征映射到语言部分所需的宽度。
+role-clip-bound = 截断边界
+role-clip-bound-desc = 限制进入或离开某一层的数值范围的单个数字，通常为量化推理而保存。
+role-unknown = 用途未知
+role-unknown-desc = 没有规则能识别此名称。下方显示其完整名称、形状和类型。
+
+## Numeric profile
+analyze-title = 数值概况
+analyze-hint = 仅从磁盘分小块读取此张量并计算统计量。在你按下按钮之前不会读取任何内容。
+analyze-button = 分析张量
+analyze-running = 正在分析… { $percent }%
+analyze-empty = 该张量没有元素。
+analyze-unsupported = 统计仅适用于浮点张量（F16、BF16、F32）。该张量的类型为 { $dtype }。
+conclusion-nonfinite = 包含非有限值：NaN { $nan } 个，+Inf { $pos_inf } 个，−Inf { $neg_inf } 个。这通常意味着文件损坏或转换出错。
+conclusion-all-zero = 全部 { $count } 个元素都恰好为零。
+conclusion-profile = 数值范围从 { $min } 到 { $max }，平均值为 { $mean }，标准差为 { $std }。这些数字只描述所存数值的尺度和离散程度。
+analyze-failed = 无法分析该张量。
+stat-count = 元素数
+stat-count-hint = 张量中存储的数值个数。
+stat-min = 最小值
+stat-min-hint = 最小的有限值。
+stat-max = 最大值
+stat-max-hint = 最大的有限值。
+stat-mean = 平均值
+stat-mean-hint = 有限值的算术平均。
+stat-std = 标准差
+stat-std-hint = 数值通常偏离平均值的程度，即张量的尺度。
+stat-zeros = 零值
+stat-zeros-hint = 恰好为零的数值。零值很多可能意味着剪枝或未使用的行。
+stat-nan = NaN
+stat-nan-hint = “非数字”值。正常的检查点中不应出现。
+stat-inf = 无穷大（+/−）
+stat-inf-hint = 无穷大的数值。正常的检查点中不应出现。
+stat-nonfinite-warning = 该张量包含 NaN 或无穷大值，这通常意味着文件损坏或转换出错。
+stat-no-finite = 没有有限值：每个元素都是 NaN 或无穷大。
+stat-histogram = 有限值的分布
+stat-bin = { $from } … { $to }：{ $count }
+stat-explainer = 这些数值描述存储值的分布：典型尺度（平均值、标准差）、极值以及恰好为零的数量。它们有助于发现损坏的文件或异常的缩放。它们不能说明模型知道什么、效果如何，也不能说明任何专家擅长什么。
+error-cancelled = 该请求已被更新的请求取代。
+
+## Presentations
+presentation-learn = 学习
+presentation-structure = 模型结构
+presentation-technical = 技术数据
+
+## Learning route
+learn-title = 语言模型如何工作
+learn-intro = 这段简短导览解释所打开模型的思路，不需要机器学习基础。
+learn-scope = 导览只使用文件中的结构。它不会运行模型，也不会展示模型真实的内部信号。
+learn-facts-parts-label = 文件中找到的部分
+learn-facts-parts = { $parts }
+learn-facts-no-parts = 没有任何部分被标记为语言、音频或视觉
+learn-facts-blocks-label = 重复块
+learn-facts-blocks = { $count }
+learn-facts-no-blocks = 此文件中未识别到重复块
+learn-facts-limits = 文件展示结构和大小，但不展示模型学到了什么、为什么给出某个回答，也不展示某一部分“知道”什么。
+learn-route-title = 从文本到下一段内容
+learn-step-text-title = 输入文本
+learn-step-text-body = 你输入一句话、一个问题或一份文档。
+learn-step-pieces-title = 文本被切成片段
+learn-step-pieces-body = 模型把文本切成 token：很小的片段，通常是完整的词或词的一部分。
+learn-step-numbers-title = 每个片段变成数字
+learn-step-numbers-body = 每个 token 都会变成一组数字，通常是在学习到的表中查到。之后模型只处理这些数字，不直接处理字母。
+learn-step-blocks-title = 数字经过重复块
+learn-step-blocks-body = 每个块会在不同位置之间混合信息并变换表示。模型会一遍又一遍地应用同一种块。
+learn-step-next-title = 模型为下一段打分
+learn-step-next-body = 最后，每个可能的下一个 token 都会得到一个分数。模型选出一个，加入文本，然后可以重复这个过程。
+learn-explain-title = 路线背后的概念
+explain-what-title = 模型在做什么
+explain-what-body = 语言模型学习续写文本。根据已有的 token，它估计下一个 token 可能是什么。它不是在查找现成答案，而是用学习到的数字和当前上下文计算分数。
+explain-blocks-title = 为什么同一个块要重复
+explain-blocks-body = 一个块会合并不同位置的信息并进行变换。重复同一种块，让每一次处理都能细化表示。文件显示有多少个块，但不显示每个块学到了什么。
+explain-attention-title = Attention：共享上下文
+explain-attention-body = 词语经常需要其他词语的信息。在虚构例子“安娜……她”中，“她”可能需要前面提到的名字“安娜”才知道指的是谁。Attention 会计算每个位置应该从其他位置取多少信息，再把信息混合进来。它不查找固定对应关系：混合权重是针对当前上下文计算出来的。
+learn-attention-disclaimer = 这只是原理示意，不是所打开模型中测量到的连接。
+explain-mlp-title = 额外处理：MLP 与专家
+explain-mlp-body = Attention 之后，每个位置会经过一个小型网络来变换数字。普通模型使用一个共享网络。专家混合模型有多个并行网络，路由器会把每个 token 送到其中少数几个。文件显示这些单元存在，但不会说明每个单元专门处理什么。
+explain-norm-title = Normalization：控制数值尺度
+explain-norm-body = 经过许多步骤后，数字可能变得很大或很小。Normalization 会在下一步之前把它们缩放到可工作的范围，让计算保持稳定。这些尺度值来自检查点本身，不代表模型质量。
+explain-tensor-title = 什么是张量
+explain-tensor-body = 张量是一组有名字的学习到的数字，通常是一个矩阵。它不是可读事实的仓库：单个数值本身没有意义，也无法像读文本一样读出模型的知识。文件给出每个张量的名称、形状和数字类型；只有你在“技术数据”中请求数值概况时，才会读取这些数字。
+learn-diagram-block = 块 { $index }
+learn-diagram-more = …
+learn-diagram-blocks-note = 重复堆叠会一遍又一遍地应用同一种块。
+learn-diagram-attn-name = 安娜
+learn-diagram-attn-pronoun = 她
+learn-diagram-attn-arrow = 可能指回前面
+learn-diagram-tensor = 张量：一组学习到的数字，不是文本。
+
+## Model structure
+structure-title = 模型结构
+structure-blocks = 重复块
+structure-parts = 文件中的部分
+structure-no-raw = 这里解释每个部分做什么。原始名称、形状和数字位于“技术数据”。
+structure-explainer = 选择一个块展开。每个分组会先用日常语言说明用途，再出现技术术语。
+structure-stack = { $count ->
+       *[other] 同一个块重复 { $count } 次
+    }
+structure-block = 块 { $index }
+structure-block-parts = { $count ->
+       *[other] { $count } 个部分
+    }
+structure-loose = 重复块之外 — { $count ->
+       *[other] { $count } 个部分
+    }
+structure-empty = 此部分中没有识别到内容。
+structure-selected = 已选择：
+structure-open-technical = 打开技术数据
+structure-bias = 调整值
+structure-expert-index = 单元 { $index }
+structure-select = 在左侧选择一个部分以查看结构。
+structure-group-attention = Attention：共享上下文
+structure-group-attention-desc = 每个片段会与其他片段比较，并混入自己需要的信息。
+structure-group-mlp = 额外处理
+structure-group-mlp-desc = Attention 之后，一个小型网络会单独变换每个片段。
+structure-group-experts = 并行处理单元
+structure-group-experts-desc = 路由器会把每个片段送到若干并行单元中的少数几个。文件不会说明每个单元专门处理什么。
+structure-group-normalization = 保持尺度稳定
+structure-group-normalization-desc = 这些部分会重新缩放数字，让下一步在可工作的范围内接收它们。
+structure-group-other = 其他部分
+structure-group-other-desc = 不属于以上分组的部分，或名称无法被规则识别的部分。
+structure-role-token-embedding = 把文本变成数字
+structure-role-token-embedding-desc = 一张查找表，每个文本片段一行。它把片段变成模型使用的数字列表。
+structure-role-position-embedding = 每个片段的位置
+structure-role-position-embedding-desc = 加入顺序信息，让模型区分不同位置。
+structure-role-attn-q = 要寻找什么
+structure-role-attn-q-desc = 把当前片段与前面的片段比较，判断哪些信息相关。
+structure-role-attn-k = 每个片段提供什么
+structure-role-attn-k-desc = 描述每个片段，让比较能够判断相关性。
+structure-role-attn-v = 传递的信息
+structure-role-attn-v-desc = 携带混入当前片段的信息。
+structure-role-attn-o = 汇合收集到的信息
+structure-role-attn-o-desc = 汇合收集到的信息，并恢复到模型通常的宽度。
+structure-role-attn-qkv = 寻找与传递合并
+structure-role-attn-qkv-desc = 把寻找和传递信息的设置存放在同一个部分中。
+structure-role-q-norm = 保持比较稳定
+structure-role-q-norm-desc = 重新缩放比较用的数字，使其保持在可工作的范围。
+structure-role-k-norm = 保持提供的信息稳定
+structure-role-k-norm-desc = 重新缩放每个片段提供的信息，让比较保持稳定。
+structure-role-mlp-gate = 额外处理的过滤器
+structure-role-mlp-gate-desc = 逐项特征决定保留多少扩展后的结果。
+structure-role-mlp-up = 扩展工作空间
+structure-role-mlp-up-desc = 把每个片段扩展到更宽的空间中进行变换。
+structure-role-mlp-down = 回到模型宽度
+structure-role-mlp-down-desc = 把结果压缩回模型通常的宽度。
+structure-role-mlp-gate-up = 过滤与扩展合并
+structure-role-mlp-gate-up-desc = 在同一个部分中完成过滤和扩展。
+structure-role-router = 选择单元
+structure-role-router-desc = 决定哪些并行单元处理每个片段。
+structure-role-expert-gate = 并行单元：过滤
+structure-role-expert-up = 并行单元：扩展
+structure-role-expert-down = 并行单元：压缩
+structure-role-expert-gate-up = 并行单元：过滤与扩展
+structure-role-expert-desc = 多个并行单元之一。文件不会说明它专门处理什么。
+structure-role-shared-gate = 共享单元：过滤
+structure-role-shared-up = 共享单元：扩展
+structure-role-shared-down = 共享单元：压缩
+structure-role-shared-gate-up = 共享单元：过滤与扩展
+structure-role-shared-desc = 一个处理每个片段的单元，与路由器选择的单元并行工作。
+structure-role-shared-router = 共享单元：比例
+structure-role-shared-router-desc = 决定加入多少共享单元的结果。
+structure-role-norm = 保持尺度稳定
+structure-role-norm-desc = 重新缩放数字，让下一步在稳定的范围内工作。
+structure-role-final-norm = 最后的尺度检查
+structure-role-final-norm-desc = 输出前的最后一次重新缩放。
+structure-role-output = 为下一片段打分
+structure-role-output-desc = 把最终数字变成每个可能的下一个文本片段的分数。
+structure-role-projector = 连接图像或音频
+structure-role-projector-desc = 把图像或音频部分的特征转换成语言部分使用的格式。
+structure-role-clip = 截断上限
+structure-role-clip-desc = 把数字截断到固定范围时使用的上限。
+structure-role-unknown = 未识别的部分
+structure-role-unknown-desc = 名称不符合已知规则，因此无法确定用途。

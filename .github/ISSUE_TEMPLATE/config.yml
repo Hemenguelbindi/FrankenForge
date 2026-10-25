@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & discussion
+    url: https://github.com/<owner>/FrankenForge/discussions
+    about: How-to questions and open discussion (enable Discussions on the repo, or use issues
+      until then).
+  - name: Security vulnerability
+    url: https://github.com/<owner>/FrankenForge/security/policy
+    about: Report vulnerabilities privately — see SECURITY.md, never via a public issue.

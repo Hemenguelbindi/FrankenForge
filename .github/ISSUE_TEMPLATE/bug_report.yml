@@ -1,0 +1,70 @@
+name: Bug report
+description: Report something that crashes, misbehaves or gives a wrong result
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: >
+        Thanks for taking the time to file a bug report. Please fill in as much as you can —
+        FrankenForge parses files you hand it, so the exact checkpoint matters.
+        **Do not attach checkpoints that contain data you cannot share.**
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened, in a sentence or two.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ff-gui with `cargo run -p ff-gui`
+        2. Open folder C:\models\my-checkpoint
+        3. Select tensor `model.layers.0.mlp.gate_proj.weight`, press Analyze tensor
+        4. See error
+      description: >
+        The smallest sequence that shows the problem. A recipe.toml (with anonymized paths) is
+        ideal for CLI bugs.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What you expected to happen instead.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: FrankenForge version
+      description: "`frankenforge --version`, git tag/commit, or the GUI build you ran."
+      placeholder: v0.1.0
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS and Rust toolchain, e.g. "Windows 11 23H2, rustc 1.97.0".
+    validations:
+      required: true
+  - type: textarea
+    id: model
+    attributes:
+      label: Model involved
+      description: >
+        Which checkpoint triggered it — name/size/quantization, and whether it is a single file,
+        a shard directory, or contains config.json. Do NOT upload the weights here.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output
+      description: >
+        CLI stderr/stdout or the "Technical details" text from a GUI error banner. Paste as text,
+        not screenshots.
+      render: text

@@ -1,0 +1,36 @@
+# Paths are relative to this file. A source can be a .safetensors file or a directory of shards.
+name = "llama-with-donor-mlp"
+base = "base"
+
+[sources]
+base = "models/base"
+donor = "models/donor"
+
+[metadata]
+author = "you"
+
+# Replace the MLP of block 4 with the donor's block 10 MLP. Shapes and dtypes must match.
+[[steps]]
+op = "transplant"
+from = "donor"
+src = "model.layers.10.mlp."
+dst = "model.layers.4.mlp."
+
+# Drop a block. After all steps every stack is renumbered from 0 without gaps,
+# and num_hidden_layers in config.json is updated (directory output).
+[[steps]]
+op = "remove"
+select = "model.layers.31."
+
+# EXPERIMENTAL: building with an adapter needs --allow-experimental-adapter. An adapter is only a
+# weight tensor: no runtime executes it and it has no numerical or quality validation, so the
+# result is not a working model (the lock file gets an "experimental" block).
+# Explicit projection [out_dim, in_dim] bridging two hidden sizes.
+# init: "identity" (default) or "zeros"; dtype: F32 (default), F16, BF16.
+[[steps]]
+op = "adapter"
+name = "adapters.donor_to_base.weight"
+in_dim = 3584
+out_dim = 4096
+init = "identity"
+dtype = "BF16"

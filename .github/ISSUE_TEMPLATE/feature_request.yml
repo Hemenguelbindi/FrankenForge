@@ -1,0 +1,48 @@
+name: Feature request
+description: Propose something new — a format, an operation, a GUI capability
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: >
+        Check ROADMAP.md in the repository first — if your idea is already listed, open an issue
+        linking to it and we will prioritize from there.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: The user-visible gap, not the implementation. "I cannot inspect GGUF" beats
+        "add a gguf module".
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How it should work from the outside (GUI flow, CLI command, recipe step).
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other ways you thought about solving the same problem.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - ff-gui (inspector)
+        - ff-cli / recipes
+        - ff-surgery (operations)
+        - ff-io (formats)
+        - ff-core (domain)
+        - Documentation
+        - Build / CI
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Links to format specs, papers, prior art, example models.
