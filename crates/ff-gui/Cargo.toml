@@ -11,6 +11,8 @@ path = "src/main.rs"
 [dependencies]
 ff-core.workspace = true
 ff-io.workspace = true
+ff-surgery.workspace = true
+ff-preflight.workspace = true
 eframe.workspace = true
 fluent-bundle.workspace = true
 rfd.workspace = true

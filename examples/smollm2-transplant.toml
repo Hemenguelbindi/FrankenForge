@@ -1,0 +1,18 @@
+# Real-model MVP: replace one middle block of SmolLM2-135M with the same block of SmolLM2-135M-Instruct.
+# Paths are relative to this file; put the models (or links to them) under <repo>/models/ (gitignored).
+# Pinned revisions:
+#   HuggingFaceTB/SmolLM2-135M           93efa2f097d58c2a74874c7e644dbc9b0cee75a2
+#   HuggingFaceTB/SmolLM2-135M-Instruct  12fd25f77366fa6b3b4b768ec3050bf629380bac
+# Everything else (other 29 blocks, embeddings, final norm, config.json, tokenizer) stays from the recipient.
+name = "smollm2-135m-block15-from-instruct"
+base = "recipient"
+
+[sources]
+recipient = "../models/SmolLM2-135M"
+donor = "../models/SmolLM2-135M-Instruct"
+
+[[steps]]
+op = "transplant"
+from = "donor"
+src = "model.layers.15."
+dst = "model.layers.15."

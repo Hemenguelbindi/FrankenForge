@@ -5,12 +5,21 @@ use std::collections::BTreeSet;
 use super::*;
 use crate::components::Kind;
 use crate::failure::FailureKind;
+use crate::forge::analysis::tokenizer_key;
+use crate::forge::build_view::STAGES;
+use crate::forge::mismatch::Mismatch;
+use crate::forge::readiness::Problem;
+use crate::forge::schema::Transfer;
+use crate::forge::steps::{Mark, TITLES};
 use crate::inspected::ConfigProblem;
 use crate::inspector::Mode;
 use crate::learn::{Explanation, STEPS};
+use crate::preflight::state as pf;
 use crate::presentation::Presentation;
 use crate::semantics::{Basis, DIM_KEYS, Group, Role};
 use crate::structure::{group_keys, role_keys};
+use crate::workspace::Workspace;
+use ff_surgery::compare::TokenizerMatch;
 
 /// Message ids defined in an FTL source (`id = ...` at the start of a line).
 fn ids(source: &str) -> BTreeSet<&str> {
@@ -75,6 +84,41 @@ fn every_key_used_by_the_code_exists_in_english() {
     used.extend(keys_used(include_str!("../learn.rs")));
     used.extend(keys_used(include_str!("../structure.rs")));
     used.extend(keys_used(include_str!("../views.rs")));
+    used.extend(keys_used(include_str!("../forge/mod.rs")));
+    used.extend(keys_used(include_str!("../forge/build_view.rs")));
+    used.extend(keys_used(include_str!("../forge/schema_view.rs")));
+    used.extend(keys_used(include_str!("../preflight/mod.rs")));
+    used.extend(pf::STATUSES.iter().flat_map(|s| <[&str; 2]>::from(pf::status_keys(*s))));
+    used.extend(pf::RESOURCES.map(pf::resource_key));
+    used.extend(pf::PARTS.map(pf::part_key));
+    used.extend(pf::ASSUMPTIONS.map(pf::assumption_key));
+    used.extend(pf::ADVICE.map(pf::advice_key));
+    // Forge passes keys through helpers and tables, so they are listed explicitly.
+    used.extend(Workspace::ALL.map(Workspace::message_key));
+    used.extend(Transfer::ALL.map(Transfer::message_key));
+    used.extend(Mismatch::KEYS);
+    used.extend(Mark::KEYS);
+    used.extend(TITLES);
+    used.extend(STAGES);
+    used.extend(["forge-row-base", "forge-row-donor", "forge-legend-taken", "forge-cell-gap"]);
+    used.extend([
+        "forge-base",
+        "forge-base-hint",
+        "forge-dialog-base",
+        "forge-donor",
+        "forge-donor-hint",
+        "forge-dialog-donor",
+    ]);
+    used.extend(Problem::KEYS);
+    used.extend(
+        [
+            TokenizerMatch::Identical,
+            TokenizerMatch::SameVocab,
+            TokenizerMatch::DifferentVocab,
+            TokenizerMatch::Missing,
+        ]
+        .map(tokenizer_key),
+    );
     used.extend(Role::ALL.iter().flat_map(|r| <[&str; 2]>::from(r.message_keys())));
     used.extend(Role::ALL.iter().flat_map(|r| <[&str; 2]>::from(role_keys(*r))));
     used.extend(Presentation::ALL.map(Presentation::message_key));

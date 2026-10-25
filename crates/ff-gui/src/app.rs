@@ -5,14 +5,17 @@ use ff_io::Safetensors;
 
 use crate::components::{Component, Kind};
 use crate::failure::Failure;
+use crate::forge::{self, ForgeUi};
 use crate::i18n::{I18n, Lang, initial_lang, os_locale};
 use crate::inspected::Inspected;
 use crate::inspector::{self, InspectorState, Mode};
 use crate::learn::{self, LearnState};
 use crate::loader::Loader;
+use crate::preflight::{self, PreflightUi};
 use crate::presentation::{Presentation, initial_presentation};
 use crate::structure;
 use crate::views::{self, component_tree, config, details, hits};
+use crate::workspace::{self, Workspace};
 
 /// Storage key for the chosen interface language (a `Lang::code`).
 const LANGUAGE_KEY: &str = "language";
@@ -38,6 +41,9 @@ pub struct App {
     /// False while the language comes from `--lang`: a one-off override must not replace the
     /// saved choice. Picking a language in the UI makes it the saved choice again.
     persist_lang: bool,
+    workspace: Workspace,
+    forge: ForgeUi,
+    preflight: PreflightUi,
     inspected: Option<Inspected>,
     loader: Loader<PathBuf, Inspected>,
     error: Option<OpenError>,
@@ -70,6 +76,9 @@ impl App {
         let mut app = Self {
             t: I18n::new(lang),
             persist_lang: forced.is_none(),
+            workspace: Workspace::default(),
+            forge: ForgeUi::default(),
+            preflight: PreflightUi::default(),
             inspected: None,
             loader: Loader::default(),
             error: None,
@@ -121,6 +130,10 @@ impl App {
         // Wrapping instead of a fixed row: longer translations move to the next line rather than
         // overlapping or being cut off.
         ui.horizontal_wrapped(|ui| {
+            if workspace::switcher(ui, &self.t, &mut self.workspace) {
+                self.inspector.stop_analysis();
+            }
+            ui.separator();
             if ui.button(self.t.t("toolbar-open-file")).clicked()
                 && let Some(path) = rfd::FileDialog::new()
                     .set_title(self.t.t("dialog-open-file"))
@@ -150,7 +163,7 @@ impl App {
                 self.error = None;
             }
         }
-        if self.inspected.is_some() {
+        if self.workspace == Workspace::Inspector && self.inspected.is_some() {
             self.presentation_tabs(ui);
         }
         ui.add_space(6.0);
@@ -206,6 +219,16 @@ impl eframe::App for App {
         self.apply_finished();
         egui::Panel::top("toolbar").show(ui, |ui| self.toolbar(ui));
 
+        if self.workspace == Workspace::Preflight {
+            return preflight::show(ui, &self.t, &mut self.preflight);
+        }
+        if self.workspace == Workspace::Forge {
+            if let Some(path) = forge::show(ui, &self.t, &mut self.forge) {
+                self.workspace = Workspace::Inspector;
+                self.open(ui.ctx(), path);
+            }
+            return;
+        }
         let t = &self.t;
         let Some(inspected) = &self.inspected else {
             egui::CentralPanel::default().show(ui, |ui| {

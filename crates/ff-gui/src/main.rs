@@ -1,5 +1,5 @@
-//! FrankenForge GUI: a read-only checkpoint inspector. Reads metadata only; never loads
-//! weights and runs no inference.
+//! FrankenForge GUI. The Inspector only displays a checkpoint: metadata only, no weights loaded,
+//! no inference. Forge calls ff-surgery use cases to build a new model without duplicating them.
 //!
 //! Usage: `ff-gui [--lang en|ru|zh-CN] [checkpoint]`.
 
@@ -11,16 +11,19 @@ mod app;
 mod components;
 mod failure;
 mod fonts;
+mod forge;
 mod i18n;
 mod inspected;
 mod inspector;
 mod learn;
 mod loader;
+mod preflight;
 mod presentation;
 mod semantics;
 mod structure;
 mod theme;
 mod views;
+mod workspace;
 
 use std::ffi::OsString;
 use std::path::PathBuf;

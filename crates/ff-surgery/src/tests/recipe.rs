@@ -28,6 +28,13 @@ fn parses_steps_with_defaults() {
 }
 
 #[test]
+fn to_toml_round_trips_through_parse() {
+    let r = Recipe::parse(EXAMPLE).unwrap();
+    let back = Recipe::parse(&r.to_toml().unwrap()).unwrap();
+    assert_eq!(format!("{back:?}"), format!("{r:?}"));
+}
+
+#[test]
 fn rejects_typo_in_step() {
     let bad = EXAMPLE.replace("dst = ", "dest = ");
     assert!(Recipe::parse(&bad).is_err());

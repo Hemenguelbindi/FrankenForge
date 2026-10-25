@@ -65,6 +65,11 @@ impl Recipe {
         toml::from_str(text)
     }
 
+    /// The recipe as TOML that `parse` reads back unchanged; fails on a non-UTF-8 source path.
+    pub fn to_toml(&self) -> Result<String> {
+        toml::to_string_pretty(self).map_err(|e| Error::Recipe(format!("cannot write recipe: {e}")))
+    }
+
     /// Directory that relative source paths resolve against.
     pub fn base_dir(recipe_path: &Path) -> &Path {
         recipe_path.parent().unwrap_or(Path::new(""))
