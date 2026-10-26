@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64};
 use clap::{Parser, Subcommand};
 use ff_core::ModelFormat;
 use ff_io::Safetensors;
-use ff_surgery::{Recipe, build, compare, inspect};
+use ff_surgery::{Recipe, build, compare, inspect, lens};
 
 #[derive(Parser)]
 #[command(name = "frankenforge", version, about = "Inspect and recombine language-model checkpoints")]
@@ -41,6 +41,23 @@ enum Cmd {
         #[arg(long)]
         weights_diff: bool,
     },
+    /// Words the model's word table places next to `word` (reads the table, runs nothing)
+    Words {
+        model: PathBuf,
+        word: String,
+        #[arg(long, default_value_t = 12)]
+        k: usize,
+    },
+    /// Words the strongest neurons of a feed-forward "down" matrix push toward (reads weights only)
+    Neurons {
+        model: PathBuf,
+        /// Full tensor name, e.g. model.layers.25.mlp.down_proj.weight
+        tensor: String,
+        #[arg(long, default_value_t = 16)]
+        n: usize,
+        #[arg(long, default_value_t = 8)]
+        k: usize,
+    },
     /// Build the recipe's model, verify it and write a lock file
     Build {
         recipe: PathBuf,
@@ -72,6 +89,38 @@ fn run(cli: Cli) -> ff_core::Result<()> {
             let (progress, stop) = (AtomicU64::new(0), AtomicBool::new(false));
             let diff = compare::weights::run(&a, &b, &format, &progress, &stop)?.expect("never stopped");
             print!("{}", if json { diff.json() + "\n" } else { diff.text() });
+        }
+        Cmd::Words { model, word, k } => {
+            let lens = lens::Lens::open(&model, &format)?;
+            let (progress, stop) = (AtomicU64::new(0), AtomicBool::new(false));
+            let watch = lens::Watch { progress: &progress, stop: &stop };
+            let width = lens.source.model().tensor(&lens.table)?.shape[1];
+            let hits = lens::nearest(
+                &*lens.source,
+                &lens.table,
+                &lens.vocab,
+                lens.word(&word)?,
+                0..width,
+                k,
+                watch,
+            )?
+            .expect("never stopped");
+            println!("next to {word:?} in {}:", lens.table);
+            for h in hits {
+                println!("  {:<24} {:.2}", format!("{:?}", h.text), h.score);
+            }
+        }
+        Cmd::Neurons { model, tensor, n, k } => {
+            let lens = lens::Lens::open(&model, &format)?;
+            let (progress, stop) = (AtomicU64::new(0), AtomicBool::new(false));
+            let watch = lens::Watch { progress: &progress, stop: &stop };
+            let found = lens::neurons(&*lens.source, &tensor, &lens.table, &lens.vocab, n, k, watch)?
+                .expect("never stopped");
+            println!("{tensor}: words each neuron pushes toward, through {} (weights only):", lens.table);
+            for nw in found {
+                let words: Vec<String> = nw.words.iter().map(|h| format!("{:?}", h.text)).collect();
+                println!("  neuron {:>6}  {}", nw.neuron, words.join(" "));
+            }
         }
         Cmd::Compare { a, b, json, weights: false } => {
             let report = compare::run(&a, &b, &format)?;

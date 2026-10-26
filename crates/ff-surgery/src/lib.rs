@@ -5,6 +5,7 @@ pub mod build;
 pub mod companion;
 pub mod compare;
 pub mod inspect;
+pub mod lens;
 pub mod lock;
 pub mod ops;
 pub mod plan;
