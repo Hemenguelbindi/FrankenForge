@@ -40,24 +40,27 @@ pub fn valid_name(name: &str) -> bool {
     matches!((parts.next(), parts.next()), (Some(Component::Normal(_)), None)) && name.trim() == name
 }
 
-/// Resolves a path that may not exist yet: the deepest existing ancestor is canonicalized (links
-/// and junctions followed), the rest is appended with `.` and `..` applied. `canonicalize` alone
-/// fails on Windows for a path that does not exist.
+/// Resolves a path that may not exist yet: the longest existing prefix is canonicalized (links
+/// and junctions followed, `..` resolved by the OS), the rest is appended with `.` and `..`
+/// applied. `canonicalize` alone fails for a path that does not exist, and `path::absolute` keeps
+/// `..` on Unix, so both steps are needed on every platform.
 pub fn resolve(path: &Path) -> io::Result<PathBuf> {
     let path = std::path::absolute(path)?;
-    let mut existing = path.as_path();
-    let mut rest = Vec::new();
-    while !existing.exists() {
-        rest.push(existing.file_name().ok_or_else(|| io::Error::from(io::ErrorKind::NotFound))?);
-        existing = existing.parent().ok_or_else(|| io::Error::from(io::ErrorKind::NotFound))?;
+    let (mut existing, mut rest) = (PathBuf::new(), Vec::new());
+    for part in path.components() {
+        if rest.is_empty() && existing.join(part).exists() {
+            existing.push(part);
+        } else {
+            rest.push(part);
+        }
     }
     let mut out = existing.canonicalize()?;
-    for part in rest.iter().rev() {
-        match Path::new(part).components().next() {
-            Some(Component::ParentDir) => {
+    for part in rest {
+        match part {
+            Component::ParentDir => {
                 out.pop();
             }
-            Some(Component::Normal(p)) => out.push(p),
+            Component::Normal(p) => out.push(p),
             _ => {}
         }
     }
