@@ -17,12 +17,15 @@ pub(crate) mod schema;
 mod schema_view;
 mod state;
 pub(crate) mod steps;
+mod weights_view;
 pub(crate) mod widgets;
 
 use std::path::PathBuf;
+use std::sync::atomic::Ordering;
 
 use eframe::egui::{self, RichText};
 use ff_surgery::compare::TokenizerMatch;
+use ff_surgery::compare::weights::WeightDiff;
 
 use crate::i18n::I18n;
 use crate::loader::Loader;
@@ -40,6 +43,8 @@ pub struct ForgeUi {
     analysis: Loader<Pair, Analysis>,
     preview: Loader<Selection, Preview>,
     build: Loader<BuildRequest, BuildResult>,
+    weights: Loader<Pair, WeightDiff>,
+    meter: jobs::Meter,
 }
 
 impl ForgeUi {
@@ -47,6 +52,9 @@ impl ForgeUi {
     fn poll(&mut self, ctx: &egui::Context) {
         if let Some((req, outcome)) = self.build.poll() {
             self.state.finish_build(req, outcome);
+        }
+        if let Some((pair, outcome)) = self.weights.poll() {
+            self.state.apply_weights(pair, outcome);
         }
         if let Some((pair, outcome)) = self.analysis.poll() {
             self.state.apply_analysis(pair, outcome);
@@ -60,7 +68,21 @@ impl ForgeUi {
         }
     }
 
+    /// A fresh meter per run: the stopped worker keeps its own and cannot move the new bar.
+    fn start_weights(&mut self, ctx: &egui::Context) {
+        let Some(pair) = self.state.pair() else { return };
+        self.meter = jobs::Meter::default();
+        let (meter, ctx) = (self.meter.clone(), ctx.clone());
+        self.weights.start(pair, move |p| jobs::weights(p, &meter), move || ctx.request_repaint());
+    }
+
+    fn stop_weights(&mut self) {
+        self.meter.stop.store(true, Ordering::Relaxed);
+    }
+
     fn start_analysis(&mut self, ctx: &egui::Context) {
+        self.stop_weights();
+        self.weights.clear();
         self.preview.clear();
         match self.state.pair() {
             Some(pair) => {
@@ -99,6 +121,14 @@ fn page(ui: &mut egui::Ui, t: &I18n, pal: Palette, f: &mut ForgeUi) -> Option<Pa
         sources(ui, t, pal, f);
         ui.add_space(12.0);
         compatibility(ui, t, pal, f);
+        ui.add_space(12.0);
+        let meter = f.weights.pending().map(|_| &f.meter);
+        match weights_view::show(ui, t, pal, &f.state, meter) {
+            weights_view::Action::None => {}
+            weights_view::Action::Start => f.start_weights(ui.ctx()),
+            weights_view::Action::Stop => f.stop_weights(),
+            weights_view::Action::Toggle(id) => f.state.toggle(&id),
+        }
     });
     ui.add_space(12.0);
     let mut action = Action::None;

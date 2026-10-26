@@ -6,6 +6,7 @@ use std::path::PathBuf;
 
 use ff_preflight::{Known, PreflightStatus};
 use ff_surgery::compare::TokenizerMatch;
+use ff_surgery::compare::weights::WeightDiff;
 use ff_surgery::report::Report;
 use ff_surgery::{Recipe, Step};
 
@@ -85,6 +86,8 @@ pub struct Forge {
     base: Option<PathBuf>,
     donor: Option<PathBuf>,
     analysis: Option<(Pair, Outcome<Analysis>)>,
+    /// Per-block weight difference of the pair; computed only when the user asks.
+    weights: Option<(Pair, Outcome<WeightDiff>)>,
     selected: BTreeSet<BlockId>,
     preview: Option<(Selection, Outcome<Preview>)>,
     out_dir: Option<PathBuf>,
@@ -192,8 +195,20 @@ impl Forge {
 
     fn reset_analysis(&mut self) {
         self.analysis = None;
+        self.weights = None;
         self.selected.clear();
         self.preview = None;
+    }
+
+    /// Like the analysis, a result for a pair that is no longer chosen is dropped.
+    pub fn apply_weights(&mut self, pair: Pair, outcome: Outcome<WeightDiff>) {
+        if self.pair().as_ref() == Some(&pair) {
+            self.weights = Some((pair, outcome));
+        }
+    }
+
+    pub fn weights(&self) -> Option<&Outcome<WeightDiff>> {
+        self.weights.as_ref().map(|(_, w)| w)
     }
 
     pub fn pair(&self) -> Option<Pair> {
@@ -212,7 +227,6 @@ impl Forge {
         self.analysis.as_ref().map(|(_, a)| a)
     }
 
-    #[cfg(test)]
     pub fn is_selected(&self, id: &BlockId) -> bool {
         self.selected.contains(id)
     }

@@ -247,6 +247,7 @@ below are examples, not Windows-only):
 cargo run -p ff-cli -- inspect ./models/base                      # file or directory of shards
 cargo run -p ff-cli -- compare ./models/base ./models/donor       # metadata-only compatibility report
 cargo run -p ff-cli -- compare ./models/base ./models/donor --json
+cargo run -p ff-cli -- compare ./models/base ./models/donor --weights  # per-block weight difference (reads weights)
 
 cargo run -p ff-cli -- plan examples/recipe.toml                  # dry run: block-level report
 cargo run -p ff-cli -- plan examples/smollm2-transplant.toml --weights-diff --json  # + weight deltas, as JSON

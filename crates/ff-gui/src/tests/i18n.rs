@@ -88,6 +88,7 @@ fn every_key_used_by_the_code_exists_in_english() {
     used.extend(keys_used(include_str!("../forge/build_view.rs")));
     used.extend(keys_used(include_str!("../forge/schema_view.rs")));
     used.extend(keys_used(include_str!("../forge/report_view.rs")));
+    used.extend(keys_used(include_str!("../forge/weights_view.rs")));
     used.extend(keys_used(include_str!("../preflight/mod.rs")));
     used.extend(pf::STATUSES.iter().flat_map(|s| <[&str; 2]>::from(pf::status_keys(*s))));
     used.extend(pf::RESOURCES.map(pf::resource_key));

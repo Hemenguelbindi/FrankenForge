@@ -3,6 +3,7 @@
 //! through `TensorSource::read_range`, so memory stays bounded whatever the model size.
 
 use std::ops::Add;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use ff_core::decode::decoder;
 use ff_core::{Error, Result, TensorSource};
@@ -14,7 +15,21 @@ use crate::{Payload, Plan, Sources};
 const CHUNK: u64 = 4 * 1024 * 1024;
 
 /// `Err` holds why the delta is unknown; I/O failures are the outer `Result`.
-type Measured = std::result::Result<Sums, String>;
+pub(crate) type Measured = std::result::Result<Sums, String>;
+
+/// Delta of one measured tensor or block.
+pub(crate) fn delta_of(m: &Measured) -> Delta {
+    m.as_ref().map_or_else(|r| unknown(r), |s| s.relative())
+}
+
+/// Running block total: sums add up; the first unknown tensor makes the block unknown.
+pub(crate) fn combine(total: Measured, name: &str, m: &Measured) -> Measured {
+    match (total, m) {
+        (Ok(a), Ok(b)) => Ok(a + *b),
+        (Err(e), _) => Err(e),
+        (_, Err(e)) => Err(format!("{name}: {e}")),
+    }
+}
 
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub(crate) struct Sums {
@@ -43,12 +58,15 @@ fn unknown(reason: &str) -> Delta {
     Delta::Unknown { reason: reason.into() }
 }
 
-/// Squared sums of `new_name - old_name` and `old_name`, read chunk by chunk.
+/// Squared sums of `new_name - old_name` and `old_name`, read chunk by chunk. `progress` counts
+/// bytes read from both tensors; a set `stop` ends the work between chunks as "stopped".
 pub(crate) fn sums(
     new: &dyn TensorSource,
     new_name: &str,
     old: &dyn TensorSource,
     old_name: &str,
+    progress: &AtomicU64,
+    stop: &AtomicBool,
 ) -> Result<Measured> {
     let info = new.model().tensor(new_name)?;
     if !info.same_layout(old.model().tensor(old_name)?) {
@@ -61,6 +79,9 @@ pub(crate) fn sums(
     let mut s = Sums::default();
     let mut offset = 0;
     while offset < total {
+        if stop.load(Ordering::Relaxed) {
+            return Ok(Err("stopped".into()));
+        }
         let len = CHUNK.min(total - offset);
         let (a, b) = (new.read_range(new_name, offset, len)?, old.read_range(old_name, offset, len)?);
         if a.len() as u64 != len || b.len() as u64 != len {
@@ -72,6 +93,7 @@ pub(crate) fn sums(
             s.old_sq += y * y;
         }
         offset += len;
+        progress.fetch_add(2 * len, Ordering::Relaxed);
     }
     if !(s.diff_sq.is_finite() && s.old_sq.is_finite()) {
         return Ok(Err("NaN or infinite values".into()));
@@ -83,9 +105,12 @@ impl Report {
     /// Reads every replacing tensor and the base tensor it replaced, and fills in the deltas.
     pub fn measure(&mut self, plan: &Plan, sources: &Sources) -> Result<()> {
         let base = sources.get(&self.base)?;
+        let (progress, stop) = (AtomicU64::new(0), AtomicBool::new(false));
         let one = |name: &str| -> Result<Measured> {
             match &plan.tensors.get(name).ok_or_else(|| Error::TensorNotFound(name.into()))?.payload {
-                Payload::Source { alias, name: src } => sums(sources.get(alias)?, src, base, name),
+                Payload::Source { alias, name: src } => {
+                    sums(sources.get(alias)?, src, base, name, &progress, &stop)
+                }
                 Payload::Generated(_) => Ok(Err("generated tensor".into())),
             }
         };
@@ -96,18 +121,14 @@ impl Report {
             let mut total: Measured = Ok(Sums::default());
             for t in &mut block.replaced {
                 let m = one(&t.name)?;
-                t.delta = m.as_ref().map_or_else(|r| unknown(r), |s| s.relative());
-                total = match (total, m) {
-                    (Ok(a), Ok(b)) => Ok(a + b),
-                    (Err(e), _) => Err(e),
-                    (_, Err(e)) => Err(format!("{}: {e}", t.name)),
-                };
+                t.delta = delta_of(&m);
+                total = combine(total, &t.name, &m);
             }
-            block.delta = Some(total.map_or_else(|r| unknown(&r), Sums::relative));
+            block.delta = Some(delta_of(&total));
         }
         for o in &mut self.outside {
             if o.delta.is_some() {
-                o.delta = Some(one(&o.name)?.map_or_else(|r| unknown(&r), Sums::relative));
+                o.delta = Some(delta_of(&one(&o.name)?));
             }
         }
         Ok(())

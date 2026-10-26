@@ -2,6 +2,7 @@
 //! Weights are not read, only headers and tokenizer.json.
 
 mod tokenizer;
+pub mod weights;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;

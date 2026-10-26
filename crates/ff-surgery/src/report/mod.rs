@@ -3,7 +3,7 @@
 //! replaced weights moved. Built from metadata; only `measure` reads weights. The report never
 //! claims anything about model behavior: nothing here runs the model.
 
-mod delta;
+pub(crate) mod delta;
 mod text;
 
 use std::collections::{BTreeMap, BTreeSet};

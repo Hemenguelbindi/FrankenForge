@@ -2,6 +2,7 @@
 
 use std::path::PathBuf;
 use std::process::ExitCode;
+use std::sync::atomic::{AtomicBool, AtomicU64};
 
 use clap::{Parser, Subcommand};
 use ff_core::ModelFormat;
@@ -26,6 +27,9 @@ enum Cmd {
         /// Print the report as JSON instead of text
         #[arg(long)]
         json: bool,
+        /// Read the weights instead and print, per block, how far `b` is from `a`
+        #[arg(long)]
+        weights: bool,
     },
     /// Apply a recipe to metadata only and print the block-level report
     Plan {
@@ -64,7 +68,12 @@ fn run(cli: Cli) -> ff_core::Result<()> {
     let format = Safetensors;
     match cli.cmd {
         Cmd::Inspect { path } => print!("{}", inspect::report(format.open(&path)?.model())),
-        Cmd::Compare { a, b, json } => {
+        Cmd::Compare { a, b, json, weights: true } => {
+            let (progress, stop) = (AtomicU64::new(0), AtomicBool::new(false));
+            let diff = compare::weights::run(&a, &b, &format, &progress, &stop)?.expect("never stopped");
+            print!("{}", if json { diff.json() + "\n" } else { diff.text() });
+        }
+        Cmd::Compare { a, b, json, weights: false } => {
             let report = compare::run(&a, &b, &format)?;
             print!("{}", if json { report.json() + "\n" } else { report.text() });
         }

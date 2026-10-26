@@ -3,15 +3,18 @@
 
 use std::fs;
 use std::path::Path;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
-use ff_core::Error;
+use ff_core::{Error, ModelFormat};
 use ff_io::Safetensors;
+use ff_surgery::compare::weights::WeightDiff;
 use ff_surgery::report::Report;
 use ff_surgery::{build, compare};
 
 use super::analysis::Analysis;
 use super::state::{BASE, DONOR, Pair, Preview, Selection, recipe};
-use crate::failure::Failure;
+use crate::failure::{Failure, FailureKind};
 use crate::loader::Outcome;
 
 /// Structural comparison of the two models: headers and tokenizer.json only, no weights.
@@ -19,6 +22,27 @@ pub fn analyze(pair: &Pair) -> Outcome<Analysis> {
     compare::run(&pair.base, &pair.donor, &Safetensors)
         .map(Analysis::new)
         .map_err(|e| Failure::from_error(&e))
+}
+
+/// Progress of the weight comparison, shared with the worker. A fresh one per run, so a stopped
+/// run can never move the bar of the next one.
+#[derive(Default, Clone)]
+pub struct Meter {
+    pub done: Arc<AtomicU64>,
+    pub total: Arc<AtomicU64>,
+    pub stop: Arc<AtomicBool>,
+}
+
+/// Per-block weight difference of the pair: reads the weights of every comparable block.
+pub fn weights(pair: &Pair, meter: &Meter) -> Outcome<WeightDiff> {
+    let fail = |e: Error| Failure::from_error(&e);
+    let (base, donor) =
+        (Safetensors.open(&pair.base).map_err(fail)?, Safetensors.open(&pair.donor).map_err(fail)?);
+    meter.total.store(compare::weights::bytes_to_read(base.model(), donor.model()), Ordering::Relaxed);
+    match compare::weights::diff(&*base, &*donor, &meter.done, &meter.stop).map_err(fail)? {
+        Some(diff) => Ok(diff),
+        None => Err(Failure { kind: FailureKind::Cancelled, detail: "stopped by the user".into() }),
+    }
 }
 
 /// The real `build::plan` for the selection: metadata only, nothing is written.

@@ -23,6 +23,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   saves `<out>.report.json` and `<out>.report.md` next to the lock file.
 - GUI Forge: a **Build report** card with the same block map, statuses, sources, deltas,
   `config.json` changes, warnings and the "behavior not evaluated" note, in en/ru/zh-CN.
+- **Where the models differ** (`compare::weights`): per-block weight difference of a donor
+  against the base over every block built the same way in both, with the part that moved most;
+  `compare a b --weights` in the CLI, a card with one bar per block in GUI Forge (click a block to
+  take it). Shows which blocks a fine-tune changed; behavior is still not evaluated.
 - `transplant` step: optional `keep_extra = true` for an intentional partial replacement.
 - README opens with the SmolLM2 example (recipe and real report) and describes the Forge and
   Preflight workspaces of the GUI.

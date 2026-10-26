@@ -2,7 +2,7 @@
 //! dtypes, bounded chunked reads, and block aggregates through `Report::measure`.
 
 use std::collections::BTreeMap;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
 use ff_core::{DType, Model, TensorInfo};
 
@@ -51,7 +51,7 @@ fn u16s(v: &[u16]) -> Vec<u8> {
 
 fn delta(dtype: DType, new: Vec<u8>, old: Vec<u8>) -> Delta {
     let (n, o) = (Values::default().with("t", dtype, new), Values::default().with("t", dtype, old));
-    sums(&n, "t", &o, "t").unwrap().map_or_else(|r| unknown(&r), Sums::relative)
+    run(&n, &o).unwrap().map_or_else(|r| unknown(&r), Sums::relative)
 }
 
 fn value(d: Delta) -> f64 {
@@ -90,7 +90,7 @@ fn zero_base_unsupported_dtype_and_nan_are_unknown_not_zero() {
 fn layout_mismatch_is_unknown() {
     let n = Values::default().with("t", DType::F32, f32s(&[1.0, 2.0]));
     let o = Values::default().with("t", DType::F16, u16s(&[0x3C00, 0x3C00, 0x3C00, 0x3C00]));
-    assert!(sums(&n, "t", &o, "t").unwrap().is_err());
+    assert!(run(&n, &o).unwrap().is_err());
 }
 
 #[test]
@@ -98,7 +98,7 @@ fn large_tensor_is_streamed_in_bounded_chunks() {
     let count = (CHUNK as usize / 4) * 2 + 3;
     let n = Values::default().with("t", DType::F32, f32s(&vec![2.0; count]));
     let o = Values::default().with("t", DType::F32, f32s(&vec![1.0; count]));
-    let s = sums(&n, "t", &o, "t").unwrap().unwrap();
+    let s = run(&n, &o).unwrap().unwrap();
     assert_eq!(s.relative(), Delta::Relative { value: 1.0 });
     assert_eq!(n.largest_read.load(Ordering::Relaxed), CHUNK);
     assert_eq!(o.largest_read.load(Ordering::Relaxed), CHUNK);
@@ -145,4 +145,20 @@ fn block_aggregate_sums_squares_over_tensors() {
     let a = Sums { diff_sq: 16.0, old_sq: 25.0 };
     let b = Sums { diff_sq: 9.0, old_sq: 0.0 };
     assert_eq!((a + b).relative(), Delta::Relative { value: 1.0 });
+}
+
+fn run(n: &Values, o: &Values) -> Result<Measured> {
+    sums(n, "t", o, "t", &AtomicU64::new(0), &AtomicBool::new(false))
+}
+
+#[test]
+fn progress_counts_both_tensors_and_stop_ends_early() {
+    let n = Values::default().with("t", DType::F32, f32s(&[1.0; 8]));
+    let o = Values::default().with("t", DType::F32, f32s(&[2.0; 8]));
+    let progress = AtomicU64::new(0);
+    sums(&n, "t", &o, "t", &progress, &AtomicBool::new(false)).unwrap().unwrap();
+    assert_eq!(progress.load(Ordering::Relaxed), 64, "32 bytes from each tensor");
+
+    let stopped = sums(&n, "t", &o, "t", &AtomicU64::new(0), &AtomicBool::new(true)).unwrap();
+    assert_eq!(stopped, Err("stopped".into()));
 }

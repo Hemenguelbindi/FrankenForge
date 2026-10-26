@@ -398,3 +398,18 @@ fn report_shows_the_plan_until_a_build_succeeds() {
     f.set_out_name("again".into());
     assert_eq!(f.report().map(|r| r.file), Some(FileCheck::NotWritten), "an edit drops the built report");
 }
+
+#[test]
+fn weight_difference_belongs_to_its_pair() {
+    use ff_surgery::compare::weights::WeightDiff;
+    let diff = WeightDiff { blocks: Vec::new(), not_compared: 3 };
+    let mut f = analyzed("b", "d");
+    let pair = f.pair().unwrap();
+    f.apply_weights(pair.clone(), Ok(diff.clone()));
+    assert_eq!(f.weights(), Some(&Ok(diff.clone())));
+
+    f.set_donor("d2".into());
+    assert_eq!(f.weights(), None, "another Donor drops the old measurement");
+    f.apply_weights(pair, Ok(diff));
+    assert_eq!(f.weights(), None, "a late result for the old pair is ignored");
+}
