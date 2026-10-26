@@ -3,6 +3,7 @@
 //! - `neurons`: which tokens each strong feed-forward neuron pushes the next word toward: the
 //!   neuron's column of the "down" matrix scored against every row of the word table (projection
 //!   onto the vocabulary). Many neurons read as noise; that is shown, never filtered into sense.
+//!
 //! Tables are streamed in row chunks, so a 4 GiB table never sits in memory.
 
 mod vocab;
@@ -107,6 +108,9 @@ fn readable(src: &dyn TensorSource, name: &str) -> Result<(TensorInfo, Decode, u
     Ok((info, dec, size))
 }
 
+/// Row ids with their scores, best first.
+type Scored = Vec<(usize, f32)>;
+
 /// Top `k` rows of `table` (over `cols`) for every query; `None` if stopped.
 fn scan(
     src: &dyn TensorSource,
@@ -116,10 +120,10 @@ fn scan(
     cosine: bool,
     k: usize,
     watch: Watch,
-) -> Result<Option<Vec<Vec<(usize, f32)>>>> {
+) -> Result<Option<Vec<Scored>>> {
     let (info, dec, size) = readable(src, table)?;
     let (rows, width) = (info.shape[0], info.shape[1]);
-    let mut best: Vec<Vec<(usize, f32)>> = vec![Vec::new(); queries.len()];
+    let mut best: Vec<Scored> = vec![Vec::new(); queries.len()];
     for r0 in (0..rows).step_by(ROWS) {
         if watch.stop.load(Ordering::Relaxed) {
             return Ok(None);
