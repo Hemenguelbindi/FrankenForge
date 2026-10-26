@@ -27,6 +27,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   against the base over every block built the same way in both, with the part that moved most;
   `compare a b --weights` in the CLI, a card with one bar per block in GUI Forge (click a block to
   take it). Shows which blocks a fine-tune changed; behavior is still not evaluated.
+- **Model graph** in the Inspector's Model structure view: every component as input, a strip of
+  blocks and output, with the links into the language part, per-layer inputs, layer kinds and
+  shared attention memory read from config.json; a clicked block opens as branches off the
+  stream with the size each matrix takes and gives. Built from names, shapes and config only, so
+  any architecture draws; unrecognised parts show as "other" with their real sizes.
 - `transplant` step: optional `keep_extra = true` for an intentional partial replacement.
 - README opens with the SmolLM2 example (recipe and real report) and describes the Forge and
   Preflight workspaces of the GUI.

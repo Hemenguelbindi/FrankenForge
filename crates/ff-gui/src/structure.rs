@@ -7,6 +7,7 @@ use std::collections::BTreeMap;
 use eframe::egui::{self, RichText};
 
 use crate::components::{Component, Kind};
+use crate::graph;
 use crate::i18n::I18n;
 use crate::inspected::Inspected;
 use crate::semantics::{Group, Param, Part, Role, classify};
@@ -91,6 +92,9 @@ pub(crate) fn tree(
             ui.label(t.t("structure-empty"));
             return;
         }
+        graph_section(ui, t, inspected, c, picked);
+        ui.add_space(10.0);
+        ui.label(RichText::new(t.t("graph-list-title")).strong());
         for stack in &c.stacks {
             ui.label(
                 RichText::new(t.ta("structure-stack", &[("count", stack.blocks.len().into())])).strong(),
@@ -127,6 +131,38 @@ pub(crate) fn tree(
                 });
         }
     });
+}
+
+/// The whole model as a graph, then the chosen block (first block of this component until a
+/// cell is clicked) as branches off the stream. Clicking a matrix selects that tensor.
+fn graph_section(
+    ui: &mut egui::Ui,
+    t: &I18n,
+    inspected: &Inspected,
+    c: &Component,
+    picked: &mut Option<String>,
+) {
+    ui.label(RichText::new(t.t("graph-title")).strong());
+    ui.label(RichText::new(t.t("graph-intro")).small().weak());
+    ui.add_space(4.0);
+    let towers = graph::towers(inspected);
+    let id = egui::Id::unique(("graph-chosen", &inspected.path, c.kind));
+    let mut chosen =
+        ui.data(|d| d.get_temp::<usize>(id)).or_else(|| c.stacks.first()?.blocks.first().copied());
+    if let Some(i) = graph::view::model(ui, t, &towers, c.kind, chosen) {
+        chosen = Some(i);
+        ui.data_mut(|d| d.insert_temp(id, i));
+    }
+    let Some(i) = chosen.filter(|&i| i < inspected.layout.blocks.len()) else { return };
+    let block = &inspected.layout.blocks[i];
+    let width = towers.iter().find(|w| w.stacks.iter().any(|s| s.blocks.contains(&i))).and_then(|w| w.width);
+    ui.add_space(6.0);
+    let args = [("stack", block.stack.clone().into()), ("index", block.index.into())];
+    ui.label(RichText::new(t.ta("graph-block-title", &args)).strong());
+    if let Some(name) = graph::view::block(ui, t, &graph::block(inspected, i, width)) {
+        *picked = Some(name);
+    }
+    ui.label(RichText::new(t.t("graph-block-note")).small().weak());
 }
 
 /// True when `name` is one of this component's tensors (inside one of its blocks or loose).

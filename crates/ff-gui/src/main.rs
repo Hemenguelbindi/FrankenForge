@@ -12,6 +12,7 @@ mod components;
 mod failure;
 mod fonts;
 mod forge;
+mod graph;
 mod i18n;
 mod inspected;
 mod inspector;
