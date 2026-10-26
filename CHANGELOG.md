@@ -6,6 +6,38 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- **Build report** (`ff_surgery::report`): a block-level account of a plan or build. For every
+  block of every stack: output index, source (alias and source block), and status — unchanged,
+  shifted, replaced, partially replaced, added or generated; plus removed blocks and tensors,
+  tensors outside the stacks with their origin, `config.json` changes, warnings, the experimental
+  flag, block counts before/after, and an always-present "model behavior: not evaluated". Text
+  output folds runs of identical rows into ranges (`0-14  recipient  unchanged`); JSON has a
+  versioned schema (`schema_version: 1`).
+- **Weight delta**: for each tensor that replaced a base tensor of the same name,
+  `||new - old||_2 / ||old||_2`, and per block over the sum of squares. F32/F16/BF16 only; other
+  dtypes, an all-zero base tensor or non-finite values give Unknown, never 0. Streamed in fixed
+  4 MiB chunks through `TensorSource::read_range`; a model is never loaded whole.
+- CLI: `plan` prints the report (`--json`, `--weights-diff`); `build` prints it with deltas and
+  saves `<out>.report.json` and `<out>.report.md` next to the lock file.
+- GUI Forge: a **Build report** card with the same block map, statuses, sources, deltas,
+  `config.json` changes, warnings and the "behavior not evaluated" note, in en/ru/zh-CN.
+- `transplant` step: optional `keep_extra = true` for an intentional partial replacement.
+- README opens with the SmolLM2 example (recipe and real report) and describes the Forge and
+  Preflight workspaces of the GUI.
+
+### Changed
+
+- `transplant` fails at plan time with `incompatible` when base tensors under `dst` have no donor
+  counterpart (they used to stay silently), unless `keep_extra = true`.
+- `transplant` into a block index that does not exist yet checks every tensor's dtype and shape
+  against the same tensor in the stack's other blocks and fails with `incompatible` on a mismatch.
+- `plan` output is the build report instead of the raw tensor listing and provenance counts.
+- F16/BF16/F32 decoding moved from the GUI into `ff_core::decode` and is shared by the GUI
+  profile and the weight delta.
+- ROADMAP/README: "Visual Forge" removed from future plans; it shipped as the GUI's Forge.
+
 ## [0.1.0] - 2026-10-25
 
 First public snapshot: an **early prototype**. The engine works and is tested; rebuilt models are

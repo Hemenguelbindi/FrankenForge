@@ -9,6 +9,7 @@ pub mod lock;
 pub mod ops;
 pub mod plan;
 pub mod recipe;
+pub mod report;
 pub mod sources;
 
 pub use plan::{Experimental, Payload, Plan, Planned};

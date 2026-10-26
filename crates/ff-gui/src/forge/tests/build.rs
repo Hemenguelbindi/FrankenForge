@@ -39,7 +39,13 @@ fn setup(name: &str) -> (PathBuf, Pair) {
 
 fn request(pair: &Pair, index: usize, out: PathBuf) -> BuildRequest {
     let blocks = vec![BlockId { stack: "model.layers".into(), index }];
-    let preview = Preview { from_base: 2, from_donor: 1, notes: Vec::new(), output_bytes: 1024 };
+    let preview = Preview {
+        from_base: 2,
+        from_donor: 1,
+        notes: Vec::new(),
+        output_bytes: 1024,
+        report: crate::forge::state::empty_report(),
+    };
     BuildRequest { selection: Selection { pair: pair.clone(), blocks }, out, preview }
 }
 

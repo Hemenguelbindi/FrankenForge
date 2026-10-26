@@ -1,6 +1,7 @@
 //! Domain model for FrankenForge: tensors, models, block layout and the ports
 //! that format adapters implement. No I/O lives here.
 
+pub mod decode;
 pub mod dtype;
 pub mod error;
 pub mod layout;

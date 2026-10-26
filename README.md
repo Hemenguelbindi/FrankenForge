@@ -17,6 +17,46 @@ The point of the project is twofold:
 Nothing in the current prototype runs a model: opening a checkpoint reads only its headers and
 metadata, surgery verifies file integrity, not model behavior. See [Limitations](#limitations).
 
+### In one example: a block from SmolLM2-Instruct inside SmolLM2
+
+[examples/smollm2-transplant.toml](examples/smollm2-transplant.toml) replaces block 15 of
+SmolLM2-135M with block 15 of SmolLM2-135M-Instruct:
+
+```toml
+name = "smollm2-135m-block15-from-instruct"
+base = "recipient"
+
+[sources]
+recipient = "../models/SmolLM2-135M"
+donor = "../models/SmolLM2-135M-Instruct"
+
+[[steps]]
+op = "transplant"
+from = "donor"
+src = "model.layers.15."
+dst = "model.layers.15."
+```
+
+`build` writes the model, re-reads every tensor and then explains what it made. This is the real
+report (also saved as `<out>.report.md` and `<out>.report.json` next to the lock file):
+
+```text
+model.layers: 30 -> 30 blocks
+  0-14   recipient  unchanged
+  15     donor:15   replaced (9/9 tensors)   weight delta: 8.50%
+  16-29  recipient  unchanged
+outside blocks: model.embed_tokens.weight, model.norm.weight <- recipient, unchanged
+config.json: unchanged
+file: all tensors re-read, hashes match
+model behavior: NOT EVALUATED
+```
+
+Every block is accounted for: where it came from, whether it moved, how far the transplanted
+weights are from the ones they replaced (`||new - old|| / ||old||`), what happened to
+`config.json`. The last line is always there: a matching hash and a known delta say nothing about
+whether the model still answers well. `plan` shows the same report before anything is written
+(`--weights-diff` adds the deltas, `--json` gives it to tools).
+
 ![FrankenForge GUI in English: Technical data view with a tensor selected and the Tensor Inspector analyzing it](examples/app_example.png)
 
 ## What works today
@@ -44,6 +84,21 @@ you explicitly ask it to analyze.
   in fixed-size chunks (two passes, bounded memory) and computes min/max/mean/std, zeros, NaN and
   infinity counts, and a 40-bin histogram, with progress. Nothing is read until you press the
   button.
+- **Forge** — build a new model from two checkpoints without writing a recipe by hand. Choose a
+  Base and a Donor folder; FrankenForge compares them (headers and `tokenizer.json` only) and
+  draws both block stacks side by side, marking which Donor blocks fit the same position of the
+  Base. Click the blocks to take; the composition card shows the real plan (tensors from each
+  model, planner notes) and the **build report** card shows the block map, statuses and
+  `config.json` consequences. Build writes a new folder (never overwriting anything) after a
+  fresh disk-space check, then shows the files written next to it — recipe, lock file, build log,
+  report — with weight deltas per replaced block and the explicit note that model behavior was not
+  evaluated. Only same-position transfers are offered today.
+- **Preflight** — what the machine has (CPU, RAM, GPUs, free disk; read in the background, only
+  on request) and an estimate of the memory and disk a chosen model needs for running or full
+  fine-tuning: on the graphics card or offloaded to RAM, at a chosen precision and context length,
+  per component, against what the machine reports. Nothing is loaded or started.
+  Every estimate lists its parts and assumptions; anything that cannot be measured is shown as
+  *Unknown*, never as zero or "fits".
 - **Localization:** English, Русский, 简体中文 — auto-detected from the OS, switchable in the
   toolbar at any time, saved between runs. The bundled Noto Sans SC font covers all three.
 - Dark/light theme; window settings persist.
@@ -63,16 +118,18 @@ The same engine, scripted. `ff-cli` is the automation front for recipes, CI and 
 - `inspect` — tensor layout of a file or shard directory;
 - `compare` — metadata-only compatibility report of two models: shared/typed-differing/unique
   tensors, block-stack transplant compatibility, tokenizer comparison (`--json` for tools);
-- `plan` — apply a recipe to metadata only and print the resulting layout and provenance (dry run);
+- `plan` — apply a recipe to metadata only and print the build report (dry run; `--json` for
+  tools, `--weights-diff` to also read the replaced weights and report their delta);
 - `build` — execute the recipe, write to `<out>.partial` and rename only after verification
-  (every tensor is re-read and hashed), then write the lock file. Output is either a single
-  `.safetensors` file or a directory with `config.json` and tokenizer files copied from the base.
+  (every tensor is re-read and hashed), then write the lock file and the report
+  (`<out>.report.json`, `<out>.report.md`). Output is either a single `.safetensors` file or a
+  directory with `config.json` and tokenizer files copied from the base.
 
 ### Surgery operations
 
 | Step | What it does |
 |---|---|
-| `transplant` | copy a block or sub-block (e.g. an MLP) from a donor model over the same region of the base |
+| `transplant` | copy a block or sub-block (e.g. an MLP) from a donor model over the same region of the base; base tensors there that the donor lacks make it fail unless `keep_extra = true`, and a new block must match the stack's other blocks |
 | `remove` | drop tensors under a selector; every layer stack is then renumbered from 0 without gaps |
 | `rename` | move tensors under a prefix, e.g. to close layer-index gaps |
 | `adapter` | add an explicit `[out_dim, in_dim]` projection bridging two hidden sizes — **experimental**, see below |
@@ -88,7 +145,8 @@ Honest state of the prototype:
 
 - **No guarantee that surgery produces a working model.** `build` verifies *file integrity* — bytes,
   dtypes, shapes, hashes — not that a transplanted model runs or produces good output. Model
-  behavior is not evaluated in any way.
+  behavior is not evaluated in any way. The report's weight delta measures how far weights moved,
+  not whether the result is better or worse.
 - **No GGUF support.** Only safetensors (single file or sharded directory) can be read or written.
 - **The adapter step is experimental.** It adds a weight tensor only; no runtime executes it and
   there has been no numerical or quality validation. `build` refuses recipes containing an adapter
@@ -190,7 +248,8 @@ cargo run -p ff-cli -- inspect ./models/base                      # file or dire
 cargo run -p ff-cli -- compare ./models/base ./models/donor       # metadata-only compatibility report
 cargo run -p ff-cli -- compare ./models/base ./models/donor --json
 
-cargo run -p ff-cli -- plan examples/recipe.toml                  # dry run: layout + provenance
+cargo run -p ff-cli -- plan examples/recipe.toml                  # dry run: block-level report
+cargo run -p ff-cli -- plan examples/smollm2-transplant.toml --weights-diff --json  # + weight deltas, as JSON
 cargo run -p ff-cli -- build examples/recipe.toml -o ./out/merged.safetensors  # weights only
 cargo run -p ff-cli -- build examples/recipe.toml -o ./out/merged              # directory: weights + config.json + tokenizer
 
@@ -203,7 +262,8 @@ from `target/release/`.
 
 A build is finished only when the output has been re-read, every tensor hashed, and
 `<out>.safetensors.lock.json` written with SHA-256 of the recipe, every source and the output —
-integrity of the files, not quality of the model. Recipes are TOML with `deny_unknown_fields`;
+integrity of the files, not quality of the model. The report next to it says what the build did,
+block by block. Recipes are TOML with `deny_unknown_fields`;
 source paths are relative to the recipe file. See [examples/recipe.toml](examples/recipe.toml)
 for every step type.
 
@@ -225,7 +285,8 @@ FrankenForge/
 ├── crates/
 │   ├── ff-core/      # domain: TensorInfo, Model, DType, block layout, errors, ports. No I/O.
 │   ├── ff-io/        # format adapters implementing the ports. Today: safetensors.
-│   ├── ff-surgery/   # use cases: recipe → Plan (metadata + provenance) → ops → build → verify → lock.
+│   ├── ff-surgery/   # use cases: recipe → Plan (metadata + provenance) → ops → build → verify → lock → report.
+│   ├── ff-preflight/ # hardware snapshot and resource estimates (Preflight).
 │   ├── ff-cli/       # `frankenforge` — composition root for automation.
 │   └── ff-gui/       # `ff-gui` — composition root for the main user interface (egui/eframe).
 ├── examples/         # recipe.toml (every step type), GUI screenshot
@@ -242,9 +303,10 @@ Short version, in order (details in [ROADMAP.md](ROADMAP.md)):
 
 1. A **real SmolLM2 transplant** — end-to-end surgery on a public model, recipe and lock file included.
 2. **Verification through xInfer** — actually run a rebuilt checkpoint in an inference runtime.
-3. **Visual Forge** — build recipes as a visual composition in the GUI, not only in TOML.
-4. **Read-only GGUF** — inspect GGUF checkpoints without claiming to write them.
-5. **Graphs and more complex compositions** — multi-input surgery beyond pairwise block swapping.
+3. **Read-only GGUF** — inspect GGUF checkpoints without claiming to write them.
+4. **Graphs and more complex compositions** — multi-input surgery beyond pairwise block swapping.
+
+Visual composition in the GUI, once planned here, already exists as **Forge** (see above).
 
 No dates and no promises: FrankenForge verifies the on-disk integrity of a rebuild — never its
 quality, and never a claim that a platform it has not run on actually works.

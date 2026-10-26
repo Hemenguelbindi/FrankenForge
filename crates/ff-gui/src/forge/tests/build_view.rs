@@ -8,7 +8,13 @@ fn request() -> super::super::build::BuildRequest {
     super::super::build::BuildRequest {
         selection: Selection { pair: Pair { base: "b".into(), donor: "d".into() }, blocks: vec![] },
         out: "out".into(),
-        preview: Preview { from_base: 1, from_donor: 1, notes: vec![], output_bytes: 0 },
+        preview: Preview {
+            from_base: 1,
+            from_donor: 1,
+            notes: vec![],
+            output_bytes: 0,
+            report: crate::forge::state::empty_report(),
+        },
     }
 }
 
@@ -30,6 +36,7 @@ fn only_success_lists_plan_copy_verify_and_lock_as_done() {
         params: 1,
         planned: request().preview,
         warnings: vec![],
+        report: crate::forge::state::empty_report(),
     };
     let s = status(&BuildStatus::Done(Ok(built)));
     assert_eq!(s, Status::Succeeded);

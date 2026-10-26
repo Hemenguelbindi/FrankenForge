@@ -11,7 +11,7 @@ cargo test --workspace                     # unit tests + end-to-end build test
 cargo clippy --workspace --all-targets     # must stay warning-free
 cargo run -- inspect <model>               # file or directory of .safetensors shards
 cargo run -- compare <a> <b> [--json]      # совместимость двух моделей, только метаданные
-cargo run -- plan examples/recipe.toml     # dry run, metadata only
+cargo run -- plan examples/recipe.toml [--json] [--weights-diff]  # dry run: block report, metadata only unless --weights-diff
 cargo run -- build <recipe> -o out.safetensors
 cargo run -p ff-gui -- [<model>]           # GUI inspector; release: cargo build --release -p ff-gui
 ```

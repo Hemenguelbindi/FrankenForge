@@ -25,7 +25,15 @@ pub struct Recipe {
 #[serde(tag = "op", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Step {
     /// Copy tensors under `src` of source `from` to `dst`, replacing same-named ones.
-    Transplant { from: String, src: String, dst: String },
+    Transplant {
+        from: String,
+        src: String,
+        dst: String,
+        /// Keep tensors under `dst` that the donor has no counterpart for (a partial replacement);
+        /// without it they make the step fail instead of silently staying.
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        keep_extra: bool,
+    },
     /// Drop tensors under `select`.
     Remove { select: String },
     /// Move tensors under `src` to `dst`, e.g. to close layer-index gaps.

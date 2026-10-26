@@ -27,21 +27,22 @@ earns the right to say "surgery produced a working model" — or documents preci
 Deliverable: a documented, repeatable check pipeline from `build` to runtime results. Still no
 quality guarantees — only measured, reported outcomes.
 
-## 3. Visual Forge
+## Done: visual composition (Forge)
 
-Today a recipe is TOML. The GUI already explains structure; the next layer is *composing*: pick a
-block in model A, drop it into model B, see the compatibility verdict (`compare` already computes
-it) and the config consequences live, then export the recipe — and keep the CLI as the execution
-surface. The visual editor produces recipes; it does not replace plan/build/verify.
+Formerly planned as "Visual Forge", now the GUI's **Forge** workspace: pick a Base and a Donor,
+see per-block structural compatibility, take Donor blocks into the same positions, read the plan
+and the build report, and build through the same plan/build/verify/lock path as the CLI (the
+recipe is written next to the result). Not there yet: transfers between different positions,
+which need an explicit, checked position mapping.
 
-## 4. Read-only GGUF
+## 3. Read-only GGUF
 
 GGUF is everywhere, so the next format is inspection, not writing: open a GGUF checkpoint in
 `inspect` and the GUI, map its metadata and tensors into the same `Model` view. Read-only on
 purpose — writing a format we cannot yet verify end-to-end would contradict the project's rule
 that "verified" means re-read and hashed.
 
-## 5. Graphs and more complex compositions
+## 4. Graphs and more complex compositions
 
 Linear recipes (base + steps) give way to a composition graph: multiple donors, cross-architecture
 bridges through adapters, chains of block moves with checked port compatibility. This is research

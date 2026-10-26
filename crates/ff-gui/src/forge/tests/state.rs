@@ -44,7 +44,13 @@ fn analyzed(base: &str, donor: &str) -> Forge {
 }
 
 fn preview(from_base: usize, from_donor: usize) -> Preview {
-    Preview { from_base, from_donor, notes: Vec::new(), output_bytes: 1024 }
+    Preview {
+        from_base,
+        from_donor,
+        notes: Vec::new(),
+        output_bytes: 1024,
+        report: crate::forge::state::empty_report(),
+    }
 }
 
 /// Disk checks stand-in: distinct models, output location fine once chosen.
@@ -58,7 +64,16 @@ fn ready_with_disk(free: Known<u64>) -> (Forge, Vec<Problem>) {
     f.toggle(&block(0));
     let sel = f.selection().unwrap();
     let gib = 1024 * 1024 * 1024;
-    f.apply_preview(sel, Ok(Preview { from_base: 7, from_donor: 1, notes: vec![], output_bytes: gib }));
+    f.apply_preview(
+        sel,
+        Ok(Preview {
+            from_base: 7,
+            from_donor: 1,
+            notes: vec![],
+            output_bytes: gib,
+            report: crate::forge::state::empty_report(),
+        }),
+    );
     f.set_out_dir("out".into());
     f.set_out_name("x".into());
     let problems = f.problems_with(|i| Checks { disk: Some(free), ..fine(i) });
@@ -167,7 +182,7 @@ fn the_recipe_moves_each_block_to_the_same_index() {
         .steps
         .iter()
         .map(|s| match s {
-            Step::Transplant { from, src, dst } => (from.clone(), src.clone(), dst.clone()),
+            Step::Transplant { from, src, dst, .. } => (from.clone(), src.clone(), dst.clone()),
             other => panic!("unexpected step {other:?}"),
         })
         .collect();
@@ -258,6 +273,7 @@ fn built(req: &BuildRequest) -> Built {
         params: 8,
         planned: req.preview.clone(),
         warnings: Vec::new(),
+        report: crate::forge::state::empty_report(),
     }
 }
 
@@ -363,4 +379,22 @@ fn the_real_checks_report_the_output_problems() {
     f.set_donor(base.join("..").join("base"));
     assert!(f.problems().contains(&Problem::SameModel));
     fs::remove_dir_all(&d).unwrap();
+}
+
+#[test]
+fn report_shows_the_plan_until_a_build_succeeds() {
+    use ff_surgery::report::FileCheck;
+    assert!(analyzed("b", "d").report().is_none(), "nothing selected, nothing planned");
+
+    let mut f = ready();
+    assert_eq!(f.report().map(|r| r.file), Some(FileCheck::NotWritten));
+    let req = f.begin_build_with(fine).unwrap();
+    assert_eq!(f.report().map(|r| r.file), Some(FileCheck::NotWritten), "planned report while running");
+    let mut done = built(&req);
+    done.report.file = FileCheck::Verified;
+    f.finish_build(req, Ok(Ok(done)));
+    assert_eq!(f.report().map(|r| r.file), Some(FileCheck::Verified));
+
+    f.set_out_name("again".into());
+    assert_eq!(f.report().map(|r| r.file), Some(FileCheck::NotWritten), "an edit drops the built report");
 }

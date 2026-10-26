@@ -27,8 +27,16 @@ enum Cmd {
         #[arg(long)]
         json: bool,
     },
-    /// Apply a recipe to metadata only and print the resulting layout
-    Plan { recipe: PathBuf },
+    /// Apply a recipe to metadata only and print the block-level report
+    Plan {
+        recipe: PathBuf,
+        /// Print the report as JSON instead of text
+        #[arg(long)]
+        json: bool,
+        /// Also read the replaced weights and report how far they moved from base
+        #[arg(long)]
+        weights_diff: bool,
+    },
     /// Build the recipe's model, verify it and write a lock file
     Build {
         recipe: PathBuf,
@@ -60,23 +68,17 @@ fn run(cli: Cli) -> ff_core::Result<()> {
             let report = compare::run(&a, &b, &format)?;
             print!("{}", if json { report.json() + "\n" } else { report.text() });
         }
-        Cmd::Plan { recipe } => {
+        Cmd::Plan { recipe, json, weights_diff } => {
             let r = Recipe::load(&recipe)?;
-            let (_, plan) = build::plan(&r, Recipe::base_dir(&recipe), &format)?;
-            print!("{}", inspect::report(&plan.to_model()));
-            println!("\nprovenance: {:?}", plan.provenance());
-            for change in &plan.companion.changes {
-                println!("{change}");
-            }
-            if let Some(e) = plan.experimental() {
-                print!("\n{}", e.text());
+            let report = build::plan_report(&r, Recipe::base_dir(&recipe), &format, weights_diff)?;
+            print!("{}", if json { report.json() + "\n" } else { report.text() });
+            if report.experimental.is_some() {
                 warn(&["adapter is experimental: build needs --allow-experimental-adapter".into()]);
             }
-            warn(&build::warnings(&plan));
         }
         Cmd::Build { recipe, out, allow_experimental_adapter } => {
             let report = build::build(&recipe, &out, &format, allow_experimental_adapter)?;
-            warn(&report.warnings);
+            print!("{}", report.report.text());
             let what = match &report.experimental {
                 None => "verified".to_owned(),
                 Some(e) => {
@@ -85,11 +87,12 @@ fn run(cli: Cli) -> ff_core::Result<()> {
                 }
             };
             println!(
-                "wrote {} ({} tensors, {} parameters), {what}; lock {}",
+                "wrote {} ({} tensors, {} parameters), {what}; lock {}; report {}",
                 out.display(),
                 report.tensors,
                 report.params,
-                report.lock_path.display()
+                report.lock_path.display(),
+                report.report_paths[1].display()
             );
         }
     }

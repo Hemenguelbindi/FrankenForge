@@ -12,6 +12,7 @@ pub(crate) mod mismatch;
 pub(crate) mod palette;
 mod paths;
 pub(crate) mod readiness;
+mod report_view;
 pub(crate) mod schema;
 mod schema_view;
 mod state;
@@ -117,6 +118,8 @@ fn page(ui: &mut egui::Ui, t: &I18n, pal: Palette, f: &mut ForgeUi) -> Option<Pa
             });
         },
     );
+    ui.add_space(12.0);
+    report_view::show(ui, t, pal, &f.state);
     match action {
         Action::None => None,
         Action::Open(path) => Some(path),

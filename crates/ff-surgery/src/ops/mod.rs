@@ -13,7 +13,9 @@ pub use adapter::materialize;
 
 pub fn apply(plan: &mut Plan, step: &Step, sources: &Sources) -> Result<()> {
     match step {
-        Step::Transplant { from, src, dst } => transplant::apply(plan, sources.get(from)?, from, src, dst),
+        Step::Transplant { from, src, dst, keep_extra } => {
+            transplant::apply(plan, sources.get(from)?, from, src, dst, *keep_extra)
+        }
         Step::Remove { select } => prefix::remove(plan, select),
         Step::Rename { src, dst } => prefix::rename(plan, src, dst),
         Step::Adapter { name, in_dim, out_dim, init, dtype } => {

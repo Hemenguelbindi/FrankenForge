@@ -6,6 +6,7 @@ use std::path::PathBuf;
 
 use ff_preflight::{Known, PreflightStatus};
 use ff_surgery::compare::TokenizerMatch;
+use ff_surgery::report::Report;
 use ff_surgery::{Recipe, Step};
 
 use super::analysis::{Analysis, BlockId};
@@ -36,7 +37,7 @@ pub fn recipe(sel: &Selection) -> Recipe {
     let steps = sel
         .blocks
         .iter()
-        .map(|b| Step::Transplant { from: DONOR.into(), src: b.prefix(), dst: b.prefix() })
+        .map(|b| Step::Transplant { from: DONOR.into(), src: b.prefix(), dst: b.prefix(), keep_extra: false })
         .collect();
     Recipe {
         name: "forge".into(),
@@ -51,7 +52,7 @@ pub fn recipe(sel: &Selection) -> Recipe {
 }
 
 /// Result of the real `build::plan` for a selection.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Preview {
     pub from_base: usize,
     pub from_donor: usize,
@@ -59,6 +60,14 @@ pub struct Preview {
     pub notes: Vec<String>,
     /// Weights plus companion files of the result, for the disk preflight.
     pub output_bytes: u64,
+    /// The core's block-level report of the plan; no weights read, so no deltas yet.
+    pub report: Box<Report>,
+}
+
+/// A report of nothing, for tests that do not look at the report.
+#[cfg(test)]
+pub fn empty_report() -> Box<Report> {
+    Box::new(Report::new(BASE, &Default::default(), &Default::default()))
 }
 
 #[derive(Debug, Default)]
@@ -102,6 +111,15 @@ impl Forge {
 
     pub fn build_status(&self) -> &BuildStatus {
         &self.build
+    }
+
+    /// The built model's report (verified, with weight deltas) once a build succeeded, otherwise
+    /// the current selection's planned report.
+    pub fn report(&self) -> Option<&Report> {
+        match &self.build {
+            BuildStatus::Done(Ok(built)) => Some(&built.report),
+            _ => self.preview()?.as_ref().ok().map(|p| &*p.report),
+        }
     }
 
     /// Starts a build if nothing blocks it; the request goes to the background job.

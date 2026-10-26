@@ -6,6 +6,7 @@ use std::path::Path;
 
 use ff_core::Error;
 use ff_io::Safetensors;
+use ff_surgery::report::Report;
 use ff_surgery::{build, compare};
 
 use super::analysis::Analysis;
@@ -23,8 +24,9 @@ pub fn analyze(pair: &Pair) -> Outcome<Analysis> {
 /// The real `build::plan` for the selection: metadata only, nothing is written.
 pub fn preview(sel: &Selection) -> Outcome<Preview> {
     // Source paths in the recipe are absolute, so they need no base directory.
-    let (_, plan) =
-        build::plan(&recipe(sel), Path::new(""), &Safetensors).map_err(|e| Failure::from_error(&e))?;
+    let fail = |e: Error| Failure::from_error(&e);
+    let (sources, plan) = build::plan(&recipe(sel), Path::new(""), &Safetensors).map_err(fail)?;
+    let report = Report::new(BASE, sources.get(BASE).map_err(fail)?.model(), &plan);
     let provenance = plan.provenance();
     let mut notes = plan.companion.changes.clone();
     notes.extend(build::warnings(&plan));
@@ -42,6 +44,7 @@ pub fn preview(sel: &Selection) -> Outcome<Preview> {
         from_donor: provenance.get(DONOR).copied().unwrap_or(0),
         notes,
         output_bytes: weights + companions,
+        report: Box::new(report),
     })
 }
 
