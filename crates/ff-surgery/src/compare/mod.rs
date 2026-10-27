@@ -1,7 +1,8 @@
 //! Metadata comparison of two models: tensors, block stacks, tokenizers.
 //! Weights are not read, only headers and tokenizer.json.
 
-mod tokenizer;
+pub(crate) mod tokenizer;
+pub mod weights;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;

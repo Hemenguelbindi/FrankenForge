@@ -289,26 +289,6 @@ structure-title = Model structure
 structure-blocks = Repeated blocks
 structure-parts = Parts of the file
 structure-no-raw = This view explains what each part does. Raw names, shapes and numbers live in Technical data.
-structure-explainer = Choose a block to open it. Each group below explains its purpose before any technical terms.
-structure-stack = { $count ->
-        [one] The same block repeats { $count } time
-       *[other] The same block repeats { $count } times
-    }
-structure-block = Block { $index }
-structure-block-parts = { $count ->
-        [one] { $count } part
-       *[other] { $count } parts
-    }
-structure-loose = Outside the repeated blocks — { $count ->
-        [one] { $count } part
-       *[other] { $count } parts
-    }
-structure-empty = No parts were recognized in this component.
-structure-selected = Selected:
-structure-open-technical = Open technical data
-structure-bias = adjustment
-structure-expert-index = unit { $index }
-structure-select = Select a part on the left to see its structure.
 structure-group-attention = Attention: sharing context
 structure-group-attention-desc = Each piece compares itself with other pieces and mixes in the information it needs.
 structure-group-mlp = Additional processing
@@ -570,3 +550,87 @@ pf-advice-components = Load fewer components (for example, leave out an image or
 pf-advice-offload = Run on the processor and RAM instead: avoids graphics memory, but much slower.
 pf-advice-disk = Free disk space or choose another drive.
 pf-advice-reprobe = Read the hardware again; some values could not be measured.
+forge-report-title = Build report
+forge-report-behavior = Model behavior was NOT evaluated: nothing was run. The report only says where each part came from and how much the weights changed.
+forge-report-file-verified = File: every tensor was read back after writing and its hash matches the plan.
+forge-report-file-planned = Planned only: nothing is written yet, weights are not compared until the build.
+forge-report-stack = { $stack }: { $before } blocks before, { $after } after
+forge-report-status-unchanged = unchanged
+forge-report-status-shifted = moved to a new position
+forge-report-status-replaced = replaced ({ $total }/{ $total } tensors)
+forge-report-status-partial = partially replaced ({ $replaced }/{ $total } tensors)
+forge-report-status-added = added (no such block in the Base)
+forge-report-status-generated = generated (experimental)
+forge-report-delta = weight change { $percent }
+forge-report-delta-unknown = weight change unknown: { $reason }
+forge-report-delta-not-computed = weight change not computed
+forge-report-removed-blocks = Removed blocks: { $names }
+forge-report-removed-tensors = Removed tensors: { $names }
+forge-report-outside-unchanged = { $name }: from { $source }, unchanged
+forge-report-outside-replaced = { $name }: replaced from { $source } { $delta }
+forge-report-outside-added = { $name }: added from { $source }
+forge-report-outside-generated = { $name }: generated (experimental)
+forge-report-config-none = config.json: the Base has none.
+forge-report-config-unchanged = config.json: unchanged.
+forge-report-config-changed = config.json changes:
+forge-report-warnings = Warnings:
+forge-report-experimental = EXPERIMENTAL: contains generated tensors that nothing can run. This is not a working model.
+forge-diff-title = Where the models differ
+forge-diff-intro = How far the weights of each Donor block are from the same block of the Base. This shows where training made the Donor different, so you can see which blocks are worth taking instead of guessing.
+forge-diff-need-analysis = Choose both models first; the difference is measured for blocks that are built the same way in both.
+forge-diff-start = Measure the difference
+forge-diff-start-hint = Reads the weights of the matching blocks of both models (the models are not changed). For a small model this takes seconds.
+forge-diff-running = Reading weights… { $percent }%
+forge-diff-stop = Stop
+forge-diff-stopped = Stopped. Nothing was measured.
+forge-diff-failed = The difference could not be measured
+forge-diff-none = No block is built the same way in both models: the matrices have other sizes or other parts. There is nothing to compare weight by weight, and such a block cannot be put into the Base directly: its numbers would not fit the Base's internal format.
+forge-diff-summary = From { $min } (block { $min_block }) to { $max } (block { $max_block })
+forge-diff-click = Click a block to take it from the Donor.
+forge-diff-block = block { $index }
+forge-diff-unknown = unknown
+forge-diff-most = most changed: { $part } { $value }
+forge-diff-not-compared = { $count } blocks are built differently and were not compared.
+forge-diff-how-to-read = How to read it: 0% means the block is the same as in the Base. The larger the number, the more the Donor's training changed this block. If all blocks differ by about the same amount, the changes are spread over the whole model, and one transplanted block carries only a small part of them. The number says how much the weights moved, not whether the model gets better: that is only visible by running the model.
+graph-flow = { $from } → { $to }
+graph-norms = { $count } normalizations keep the numbers in range
+
+net-words = Word table
+net-output-words = Output: words
+net-per-layer = Hints for every block
+net-bridge = Bridge
+net-block-tip = Block { $index } · { $params } parameters
+net-legend-size = Circle size = number of parameters
+net-legend-shared = Orange ring: the block reuses the attention memory of another block
+net-legend-controls = Wheel: zoom · drag: move · click: what is inside
+inside-summary = What the program found in this model
+inside-largest = Largest part: { $name } ({ $share }% of the model)
+inside-entry = Data enters here: { $name }
+inside-exit = The next word comes out here: { $name }
+inside-most-linked = Most links: { $name }
+inside-pick = Click a circle on the graph to see what is inside it.
+inside-size = { $params } parameters · { $share }% of the model
+inside-words = One row per word (token) of the vocabulary of the model, { $rows } rows. Each row is the list of numbers the model uses for that word; words with a similar meaning get similar rows. Type a word to see its neighbours.
+inside-output-words = Turns the result of the last block back into a score for each of the { $rows } words; the word with the highest score is the next word. Type a word to see which words this table treats as similar.
+inside-per-layer = A lookup table, not a computing part: for every word it holds a separate small set of numbers for each of the { $blocks } blocks, handed to that block directly. It can be huge because it has a row for every word of the vocabulary. Type a word and choose a block to see which words get a similar hint there.
+inside-block = Block { $index } of { $stack }: it reads the stream of numbers, works on it and adds its result back.
+inside-block-kind = Kind from config.json: { $kind }
+inside-shared-memory = This block keeps no attention memory of its own; it reuses the memory of an earlier block.
+inside-neurons-hint = The feed-forward part has thousands of neurons. Each one, when it fires, pushes the next word in a direction. The program can read that direction as words from the weights alone.
+inside-neurons-button = Which words do its neurons push toward?
+inside-neurons-none = This block has no recognised feed-forward part, so its neurons cannot be read as words.
+inside-bridge = Translates the numbers of this part into the numbers the language part works with, so that what was seen or heard can be talked about.
+inside-word-label = Word:
+inside-for-block = block
+inside-words-button = Show similar words
+inside-reading = Reading the weights…
+inside-stop = Stop
+inside-stopped = Stopped.
+inside-failed = Could not read this part
+inside-near = Next to “{ $word }”:
+inside-near-note = The number is how similar the rows are (1 = the same direction). Read from the weights only; nothing was run.
+inside-not-one-token = This model splits the word into several pieces, so it has no single row. Pieces it starts with:
+inside-neurons-title = The 16 strongest neurons of this block and the words each pushes toward
+inside-neuron = neuron { $index }:
+inside-neurons-note = Read from the weights only (projection onto the vocabulary), nothing was run. Many neurons read as a mix of unrelated pieces: that is normal, a neuron rarely means one word. This shows where a neuron pushes, not everything it does.
+net-per-layer-part = Part of the hints path

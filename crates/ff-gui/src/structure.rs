@@ -2,14 +2,12 @@
 //! group and part is named by what it does. Raw names, shapes, dtypes and numbers stay in the
 //! Technical presentation.
 
-use std::collections::BTreeMap;
-
 use eframe::egui::{self, RichText};
 
 use crate::components::{Component, Kind};
 use crate::i18n::I18n;
 use crate::inspected::Inspected;
-use crate::semantics::{Group, Param, Part, Role, classify};
+use crate::semantics::{Group, Part, Role};
 use crate::views;
 
 /// Left panel: model facts and the components found in the file. No dtypes, config or raw names.
@@ -47,147 +45,6 @@ pub(crate) fn overview(
     }
     ui.add_space(12.0);
     ui.label(RichText::new(t.t("structure-no-raw")).small().weak());
-}
-
-/// Central panel for the chosen component. Clicking a part selects it; the summary near the top
-/// offers the explicit jump to Technical data, where Q/K/V, raw names, shapes and numbers live.
-pub(crate) fn tree(
-    ui: &mut egui::Ui,
-    t: &I18n,
-    inspected: &Inspected,
-    c: &Component,
-    picked: &mut Option<String>,
-    open_technical: &mut bool,
-) {
-    ui.heading(t.t(c.kind.message_keys().0));
-    ui.label(t.t(c.kind.message_keys().1));
-    ui.add_space(6.0);
-    ui.label(RichText::new(t.t("structure-explainer")).weak());
-    ui.add_space(6.0);
-
-    // Keep the selection summary and its jump button above the scroll area, otherwise a long
-    // block list would push them off the bottom of the panel.
-    if let Some(name) = picked.as_deref()
-        && belongs(c, inspected, name)
-    {
-        ui.horizontal_wrapped(|ui| {
-            ui.label(RichText::new(t.t("structure-selected")).weak());
-            let m = classify(name);
-            ui.label(RichText::new(t.t(role_keys(m.role).0)).strong());
-            if let Some(index) = m.expert {
-                ui.label(
-                    RichText::new(t.ta("structure-expert-index", &[("index", index.into())])).small().weak(),
-                );
-            }
-            if ui.button(t.t("structure-open-technical")).clicked() {
-                *open_technical = true;
-            }
-        });
-        ui.separator();
-    }
-
-    egui::ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
-        if c.stacks.is_empty() && c.loose.is_empty() {
-            ui.label(t.t("structure-empty"));
-            return;
-        }
-        for stack in &c.stacks {
-            ui.label(
-                RichText::new(t.ta("structure-stack", &[("count", stack.blocks.len().into())])).strong(),
-            );
-            for &i in &stack.blocks {
-                let block = &inspected.layout.blocks[i];
-                let title = t.ta("structure-block", &[("index", (block.index + 1).into())]);
-                egui::CollapsingHeader::new(title)
-                    .id_salt(("structure", &block.prefix))
-                    .default_open(stack.blocks.len() == 1)
-                    .show(ui, |ui| {
-                        ui.label(
-                            RichText::new(
-                                t.ta("structure-block-parts", &[("count", block.tensors.len().into())]),
-                            )
-                            .small()
-                            .weak(),
-                        );
-                        let names: Vec<&String> = block.tensors.iter().collect();
-                        grouped(ui, t, c.kind, &block.prefix, &names, picked);
-                    });
-            }
-            ui.add_space(8.0);
-        }
-        if !c.loose.is_empty() {
-            let title = t.ta("structure-loose", &[("count", c.loose.len().into())]);
-            egui::CollapsingHeader::new(title)
-                .id_salt(("structure", c.kind, "loose"))
-                // Same guard as the technical tree: a flat checkpoint can hold 100k+ loose tensors.
-                .default_open(c.stacks.is_empty() && c.loose.len() <= views::AUTO_OPEN_ROWS)
-                .show(ui, |ui| {
-                    let names: Vec<&String> = c.loose.iter().collect();
-                    grouped(ui, t, c.kind, "loose", &names, picked);
-                });
-        }
-    });
-}
-
-/// True when `name` is one of this component's tensors (inside one of its blocks or loose).
-fn belongs(c: &Component, inspected: &Inspected, name: &str) -> bool {
-    c.loose.iter().any(|n| n.as_str() == name)
-        || c.stacks.iter().any(|s| {
-            s.blocks.iter().any(|&i| inspected.layout.blocks[i].tensors.iter().any(|n| n.as_str() == name))
-        })
-}
-
-fn grouped(
-    ui: &mut egui::Ui,
-    t: &I18n,
-    kind: Kind,
-    id: &str,
-    names: &[&String],
-    picked: &mut Option<String>,
-) {
-    let mut groups: BTreeMap<Group, Vec<&String>> = BTreeMap::new();
-    for name in names {
-        groups.entry(classify(name).role.group()).or_default().push(*name);
-    }
-    for (group, names) in groups {
-        let (title, description) = group_keys(group);
-        // Keep big lists closed by default (freeze guard, and a large expert group would bury
-        // everything else); the `kind` salt stops one component's toggles bleeding into another.
-        let open = names.len() <= views::AUTO_OPEN_ROWS && (group != Group::Experts || names.len() <= 8);
-        egui::CollapsingHeader::new(t.t(title)).id_salt((kind, id, group)).default_open(open).show(
-            ui,
-            |ui| {
-                ui.label(RichText::new(t.t(description)).small().weak());
-                let mut seen = Vec::new();
-                for name in names {
-                    row(ui, t, name, picked, &mut seen);
-                }
-            },
-        );
-    }
-}
-
-/// One part inside a group. The description is shown once per role, so eight parallel units do
-/// not repeat the same paragraph eight times.
-fn row(ui: &mut egui::Ui, t: &I18n, name: &str, picked: &mut Option<String>, seen: &mut Vec<Role>) {
-    let m = classify(name);
-    let (title, description) = role_keys(m.role);
-    let mut label = t.t(title);
-    if let Some(index) = m.expert {
-        label = format!("{label} · {}", t.ta("structure-expert-index", &[("index", index.into())]));
-    }
-    if m.param == Param::Bias {
-        label = format!("{label} · {}", t.t("structure-bias"));
-    }
-    let selected = picked.as_deref() == Some(name);
-    if ui.selectable_label(selected, RichText::new(label).strong()).clicked() {
-        *picked = Some(name.to_owned());
-    }
-    if !seen.contains(&m.role) {
-        ui.label(RichText::new(t.t(description)).small().weak());
-        seen.push(m.role);
-    }
-    ui.add_space(2.0);
 }
 
 pub(crate) fn group_keys(group: Group) -> (&'static str, &'static str) {

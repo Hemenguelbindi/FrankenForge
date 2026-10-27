@@ -8,6 +8,7 @@ use ff_core::{Error, Model, ModelFormat, Result, TensorInfo};
 use crate::companion::Companion;
 use crate::lock::{Lock, sha256};
 use crate::plan::Experimental;
+use crate::report::{FileCheck, Report};
 use crate::{Payload, Plan, Recipe, Sources, ops};
 
 pub struct BuildReport {
@@ -17,6 +18,9 @@ pub struct BuildReport {
     pub lock_path: PathBuf,
     /// `Some`: the build is experimental and the result is not a validated working model.
     pub experimental: Option<Experimental>,
+    /// Block-level account of the result, with weight deltas; saved next to the lock file.
+    pub report: Report,
+    pub report_paths: [PathBuf; 2],
 }
 
 /// Opens the sources and applies every step. Touches metadata only.
@@ -34,6 +38,21 @@ pub fn plan(recipe: &Recipe, base_dir: &Path, format: &dyn ModelFormat) -> Resul
     let blocks_changed = plan.blocks_changed(&recipe.base, base);
     plan.companion = Companion::load(&base_path, &base.layout(), &plan.to_model().layout(), blocks_changed)?;
     Ok((sources, plan))
+}
+
+/// The plan's report; with `weights_diff` replaced weights are read and compared to base.
+pub fn plan_report(
+    recipe: &Recipe,
+    base_dir: &Path,
+    format: &dyn ModelFormat,
+    weights_diff: bool,
+) -> Result<Report> {
+    let (sources, plan) = plan(recipe, base_dir, format)?;
+    let mut report = Report::new(&recipe.base, sources.get(&recipe.base)?.model(), &plan);
+    if weights_diff {
+        report.measure(&plan, &sources)?;
+    }
+    Ok(report)
 }
 
 /// Non-fatal findings, e.g. layer-index gaps left by a removal.
@@ -79,14 +98,22 @@ pub fn build(
         write_dir(format, out, &plan, &sources, &model)?;
     }
 
+    let mut report = Report::new(&recipe.base, sources.get(&recipe.base)?.model(), &plan);
+    report.warnings.clone_from(&warnings);
+    report.file = FileCheck::Verified;
+    report.measure(&plan, &sources)?;
+
     let lock_path = Lock::path_for(out);
     Lock::create(&recipe, recipe_path, out, experimental.clone())?.save(&lock_path)?;
+    let report_paths = report.save(out)?;
     Ok(BuildReport {
         tensors: model.tensors.len(),
         params: model.param_count(),
         warnings,
         lock_path,
         experimental,
+        report,
+        report_paths,
     })
 }
 

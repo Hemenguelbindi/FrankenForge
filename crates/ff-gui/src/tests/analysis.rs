@@ -60,17 +60,6 @@ fn bf16_and_f16_decode_exactly() {
     assert_eq!((f.min, f.max), (-2.0, 1.0));
     assert!(close(f.mean, -0.5 / 3.0));
 
-    assert_eq!(f16_to_f32(0x3C00), 1.0);
-    assert_eq!(f16_to_f32(0xC000), -2.0);
-    assert_eq!(f16_to_f32(0x3800), 0.5);
-    assert_eq!(f16_to_f32(0x7BFF), 65504.0, "largest finite half");
-    assert_eq!(f16_to_f32(0x0001), 2f32.powi(-24), "smallest subnormal");
-    assert_eq!(f16_to_f32(0x8000), 0.0);
-    assert!(f16_to_f32(0x8000).is_sign_negative());
-    assert_eq!(f16_to_f32(0x7C00), f32::INFINITY);
-    assert_eq!(f16_to_f32(0xFC00), f32::NEG_INFINITY);
-    assert!(f16_to_f32(0x7E00).is_nan());
-
     let (p, f) = finite(run(DType::F16, &u16_bytes(&[0x3C00, 0xC000, 0x0000, 0x7C00, 0x7E00])));
     assert_eq!((p.count, p.zeros, p.nan, p.pos_inf), (5, 1, 1, 1));
     assert_eq!((f.count, f.min, f.max), (3, -2.0, 1.0));

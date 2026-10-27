@@ -45,7 +45,7 @@ pub fn compare(a: &Path, b: &Path) -> Result<TokenizerDiff> {
     Ok(TokenizerDiff { status, vocab_a: va.map(|v| v.len()), vocab_b: vb.map(|v| v.len()) })
 }
 
-fn read(model: &Path) -> Result<Option<(PathBuf, Vec<u8>)>> {
+pub(crate) fn read(model: &Path) -> Result<Option<(PathBuf, Vec<u8>)>> {
     let path = model.join(FILE);
     if !model.is_dir() || !path.is_file() {
         return Ok(None);

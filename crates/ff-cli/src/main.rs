@@ -2,11 +2,12 @@
 
 use std::path::PathBuf;
 use std::process::ExitCode;
+use std::sync::atomic::{AtomicBool, AtomicU64};
 
 use clap::{Parser, Subcommand};
 use ff_core::ModelFormat;
 use ff_io::Safetensors;
-use ff_surgery::{Recipe, build, compare, inspect};
+use ff_surgery::{Recipe, build, compare, inspect, lens};
 
 #[derive(Parser)]
 #[command(name = "frankenforge", version, about = "Inspect and recombine language-model checkpoints")]
@@ -26,9 +27,37 @@ enum Cmd {
         /// Print the report as JSON instead of text
         #[arg(long)]
         json: bool,
+        /// Read the weights instead and print, per block, how far `b` is from `a`
+        #[arg(long)]
+        weights: bool,
     },
-    /// Apply a recipe to metadata only and print the resulting layout
-    Plan { recipe: PathBuf },
+    /// Apply a recipe to metadata only and print the block-level report
+    Plan {
+        recipe: PathBuf,
+        /// Print the report as JSON instead of text
+        #[arg(long)]
+        json: bool,
+        /// Also read the replaced weights and report how far they moved from base
+        #[arg(long)]
+        weights_diff: bool,
+    },
+    /// Words the model's word table places next to `word` (reads the table, runs nothing)
+    Words {
+        model: PathBuf,
+        word: String,
+        #[arg(long, default_value_t = 12)]
+        k: usize,
+    },
+    /// Words the strongest neurons of a feed-forward "down" matrix push toward (reads weights only)
+    Neurons {
+        model: PathBuf,
+        /// Full tensor name, e.g. model.layers.25.mlp.down_proj.weight
+        tensor: String,
+        #[arg(long, default_value_t = 16)]
+        n: usize,
+        #[arg(long, default_value_t = 8)]
+        k: usize,
+    },
     /// Build the recipe's model, verify it and write a lock file
     Build {
         recipe: PathBuf,
@@ -56,27 +85,58 @@ fn run(cli: Cli) -> ff_core::Result<()> {
     let format = Safetensors;
     match cli.cmd {
         Cmd::Inspect { path } => print!("{}", inspect::report(format.open(&path)?.model())),
-        Cmd::Compare { a, b, json } => {
+        Cmd::Compare { a, b, json, weights: true } => {
+            let (progress, stop) = (AtomicU64::new(0), AtomicBool::new(false));
+            let diff = compare::weights::run(&a, &b, &format, &progress, &stop)?.expect("never stopped");
+            print!("{}", if json { diff.json() + "\n" } else { diff.text() });
+        }
+        Cmd::Words { model, word, k } => {
+            let lens = lens::Lens::open(&model, &format)?;
+            let (progress, stop) = (AtomicU64::new(0), AtomicBool::new(false));
+            let watch = lens::Watch { progress: &progress, stop: &stop };
+            let width = lens.source.model().tensor(&lens.table)?.shape[1];
+            let hits = lens::nearest(
+                &*lens.source,
+                &lens.table,
+                &lens.vocab,
+                lens.word(&word)?,
+                0..width,
+                k,
+                watch,
+            )?
+            .expect("never stopped");
+            println!("next to {word:?} in {}:", lens.table);
+            for h in hits {
+                println!("  {:<24} {:.2}", format!("{:?}", h.text), h.score);
+            }
+        }
+        Cmd::Neurons { model, tensor, n, k } => {
+            let lens = lens::Lens::open(&model, &format)?;
+            let (progress, stop) = (AtomicU64::new(0), AtomicBool::new(false));
+            let watch = lens::Watch { progress: &progress, stop: &stop };
+            let found = lens::neurons(&*lens.source, &tensor, &lens.table, &lens.vocab, n, k, watch)?
+                .expect("never stopped");
+            println!("{tensor}: words each neuron pushes toward, through {} (weights only):", lens.table);
+            for nw in found {
+                let words: Vec<String> = nw.words.iter().map(|h| format!("{:?}", h.text)).collect();
+                println!("  neuron {:>6}  {}", nw.neuron, words.join(" "));
+            }
+        }
+        Cmd::Compare { a, b, json, weights: false } => {
             let report = compare::run(&a, &b, &format)?;
             print!("{}", if json { report.json() + "\n" } else { report.text() });
         }
-        Cmd::Plan { recipe } => {
+        Cmd::Plan { recipe, json, weights_diff } => {
             let r = Recipe::load(&recipe)?;
-            let (_, plan) = build::plan(&r, Recipe::base_dir(&recipe), &format)?;
-            print!("{}", inspect::report(&plan.to_model()));
-            println!("\nprovenance: {:?}", plan.provenance());
-            for change in &plan.companion.changes {
-                println!("{change}");
-            }
-            if let Some(e) = plan.experimental() {
-                print!("\n{}", e.text());
+            let report = build::plan_report(&r, Recipe::base_dir(&recipe), &format, weights_diff)?;
+            print!("{}", if json { report.json() + "\n" } else { report.text() });
+            if report.experimental.is_some() {
                 warn(&["adapter is experimental: build needs --allow-experimental-adapter".into()]);
             }
-            warn(&build::warnings(&plan));
         }
         Cmd::Build { recipe, out, allow_experimental_adapter } => {
             let report = build::build(&recipe, &out, &format, allow_experimental_adapter)?;
-            warn(&report.warnings);
+            print!("{}", report.report.text());
             let what = match &report.experimental {
                 None => "verified".to_owned(),
                 Some(e) => {
@@ -85,11 +145,12 @@ fn run(cli: Cli) -> ff_core::Result<()> {
                 }
             };
             println!(
-                "wrote {} ({} tensors, {} parameters), {what}; lock {}",
+                "wrote {} ({} tensors, {} parameters), {what}; lock {}; report {}",
                 out.display(),
                 report.tensors,
                 report.params,
-                report.lock_path.display()
+                report.lock_path.display(),
+                report.report_paths[1].display()
             );
         }
     }

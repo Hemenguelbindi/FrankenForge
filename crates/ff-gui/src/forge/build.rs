@@ -12,6 +12,7 @@ use ff_core::{Error, Result};
 use ff_io::Safetensors;
 use ff_surgery::build::{self, BuildReport};
 use ff_surgery::lock::Lock;
+use ff_surgery::report::Report;
 
 use ff_preflight::{Known, PreflightStatus, probe};
 
@@ -22,14 +23,14 @@ use crate::failure::Failure;
 use crate::loader::Outcome;
 
 /// What to build; the preview is the real plan of the same selection, shown again in the report.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BuildRequest {
     pub selection: Selection,
     pub out: PathBuf,
     pub preview: Preview,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub struct Built {
     pub out: PathBuf,
     pub recipe: PathBuf,
@@ -41,6 +42,8 @@ pub struct Built {
     /// Tensors per source, from the plan the build used.
     pub planned: Preview,
     pub warnings: Vec<String>,
+    /// The core's report of the build: verified, with weight deltas; also saved next to `out`.
+    pub report: Box<Report>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -99,6 +102,7 @@ fn build(req: &BuildRequest) -> BuildResult {
                 params: report.params,
                 planned: req.preview.clone(),
                 warnings,
+                report: Box::new(report.report),
             })
         }
         // The recipe and the log stay next to the output for diagnosis.

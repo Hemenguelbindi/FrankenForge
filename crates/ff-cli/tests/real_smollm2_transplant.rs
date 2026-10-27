@@ -12,6 +12,7 @@ use std::path::PathBuf;
 
 use ff_core::ModelFormat;
 use ff_io::Safetensors;
+use ff_surgery::report::{Delta, FileCheck, Status};
 use ff_surgery::{build, companion, inspect, lock};
 
 const BLOCK: &str = "model.layers.15.";
@@ -103,6 +104,29 @@ fn middle_block_from_donor_rest_from_recipient() {
 
     let text = inspect::report(b.model());
     assert!(text.contains("model.layers: 30 blocks"), "{text}");
+
+    let rep = &report.report;
+    assert_eq!(rep.stacks.len(), 1);
+    assert_eq!((rep.stacks[0].blocks_before, rep.stacks[0].blocks_after), (30, 30));
+    for block in &rep.stacks[0].blocks {
+        if block.index == 15 {
+            assert_eq!(block.status, Status::Replaced { alias: "donor".into(), from: 15 });
+            assert_eq!((block.tensors, block.replaced.len()), (9, 9));
+            let Some(Delta::Relative { value }) = block.delta else { panic!("{:?}", block.delta) };
+            assert!(value > 0.0, "donor block 15 equals recipient block 15");
+        } else {
+            assert_eq!(block.status, Status::Unchanged, "block {}", block.index);
+            assert!(block.delta.is_none());
+        }
+    }
+    assert!(rep.removed_blocks.is_empty() && rep.removed_tensors.is_empty());
+    assert_eq!(rep.file, FileCheck::Verified);
+    assert_eq!(rep.model_behavior, "not_evaluated");
+    let [json_path, md_path] = &report.report_paths;
+    // Text, not a parsed Report: serde_json's default float parsing may differ in the last bit.
+    assert_eq!(fs::read_to_string(json_path).unwrap(), rep.json());
+    assert!(fs::read_to_string(md_path).unwrap().contains("model behavior: NOT EVALUATED"));
+    println!("{}", rep.text());
 
     println!(
         "transplant: {from_donor} tensors of {BLOCK} from donor, {from_recipient} from recipient; \

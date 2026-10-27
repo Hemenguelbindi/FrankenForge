@@ -6,6 +6,7 @@ use ff_io::Safetensors;
 use crate::components::{Component, Kind};
 use crate::failure::Failure;
 use crate::forge::{self, ForgeUi};
+use crate::graph::{self, canvas::GraphUi};
 use crate::i18n::{I18n, Lang, initial_lang, os_locale};
 use crate::inspected::Inspected;
 use crate::inspector::{self, InspectorState, Mode};
@@ -58,6 +59,8 @@ pub struct App {
     hits: Vec<String>,
     /// The selected tensor and its analysis; weights are read only after "Analyze tensor".
     inspector: InspectorState,
+    /// The model graph of the Structure presentation and its "what is inside" questions.
+    graph: GraphUi,
 }
 
 impl App {
@@ -90,6 +93,7 @@ impl App {
             query: String::new(),
             hits: Vec::new(),
             inspector: InspectorState::default(),
+            graph: GraphUi::default(),
         };
         app.inspector.set_mode(mode);
         if let Some(path) = path {
@@ -260,15 +264,22 @@ impl eframe::App for App {
                 },
             );
 
+            self.graph.sync(inspected);
             let mut open_technical = false;
-            egui::CentralPanel::default().show(ui, |ui| {
-                match self.selected.and_then(|k| inspected.components.iter().find(|c| c.kind == k)) {
-                    Some(c) => structure::tree(ui, t, inspected, c, &mut self.picked, &mut open_technical),
-                    None => {
-                        ui.label(t.t("structure-select"));
-                    }
-                }
+            egui::Panel::right("inside").resizable(true).default_size(440.0).min_size(320.0).show(ui, |ui| {
+                egui::ScrollArea::vertical().auto_shrink(false).show(ui, |ui| {
+                    ui.add_space(8.0);
+                    graph::inside::show(
+                        ui,
+                        t,
+                        inspected,
+                        &mut self.graph,
+                        &mut self.picked,
+                        &mut open_technical,
+                    );
+                });
             });
+            egui::CentralPanel::default().show(ui, |ui| graph::canvas::show(ui, t, &mut self.graph));
             // The chosen part is ready for the inspector if the user moves to Technical data.
             self.inspector.select(inspected, self.picked.clone());
             if open_technical {
