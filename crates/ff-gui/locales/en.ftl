@@ -633,3 +633,4 @@ inside-not-one-token = This model splits the word into several pieces, so it has
 inside-neurons-title = The 16 strongest neurons of this block and the words each pushes toward
 inside-neuron = neuron { $index }:
 inside-neurons-note = Read from the weights only (projection onto the vocabulary), nothing was run. Many neurons read as a mix of unrelated pieces: that is normal, a neuron rarely means one word. This shows where a neuron pushes, not everything it does.
+net-per-layer-part = Part of the hints path

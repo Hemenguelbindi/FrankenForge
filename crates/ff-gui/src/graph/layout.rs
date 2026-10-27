@@ -21,6 +21,8 @@ pub fn place(net: &Net, radius: &[f32]) -> Vec<[f32; 2]> {
         })
         .collect();
     let k2 = SPACING * SPACING;
+    let mut feeds = vec![0usize; n];
+    net.links.iter().filter(|l| l.2 == Link::Feed).for_each(|l| feeds[l.0] += 1);
     for step in 0..STEPS {
         let heat = SPACING * (1.0 - step as f32 / STEPS as f32) + 1.0;
         let mut push = vec![[0f32; 2]; n];
@@ -40,8 +42,9 @@ pub fn place(net: &Net, radius: &[f32]) -> Vec<[f32; 2]> {
         for &(a, b, link) in &net.links {
             let (dx, dy) = (pos[a][0] - pos[b][0], pos[a][1] - pos[b][1]);
             let d = (dx * dx + dy * dy).sqrt().max(0.5);
-            // A table feeding every block would otherwise crush them into a ball around it.
-            let weight = if link == Link::Feed { 0.08 } else { 1.0 };
+            // A table feeding every block pulls as much as one ordinary link in total; otherwise it
+            // crushes the blocks into a ball around itself.
+            let weight = if link == Link::Feed { 0.5 / feeds[a] as f32 } else { 1.0 };
             let f = d * d / SPACING * weight;
             let (fx, fy) = (dx / d * f, dy / d * f);
             push[a][0] -= fx;

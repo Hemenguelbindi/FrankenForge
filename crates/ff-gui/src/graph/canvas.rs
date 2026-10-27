@@ -24,7 +24,10 @@ pub struct GraphUi {
     radius: Vec<f32>,
     pan: Vec2,
     zoom: f32,
-    fitted: bool,
+    /// Canvas size the graph was last fitted to.
+    fitted: Option<Vec2>,
+    /// Set once the user zooms or drags; until then the graph refits when the canvas resizes.
+    touched: bool,
     dragging: Option<usize>,
     pub selected: Option<usize>,
     pub inside: InsideState,
@@ -46,7 +49,8 @@ impl GraphUi {
         self.selected = self.marks.as_ref().and_then(|m| m.entry);
         self.net = net;
         self.key = Some(inspected.path.clone());
-        self.fitted = false;
+        self.fitted = None;
+        self.touched = false;
         self.inside = InsideState::default();
     }
 }
@@ -67,6 +71,8 @@ pub fn name(t: &I18n, what: &What) -> String {
     match what {
         What::Words(n) if n.role == crate::semantics::Role::OutputHead => t.t("net-output-words"),
         What::Words(_) => t.t("net-words"),
+        // Only the table itself hands out hints; projections and norms on that path are parts of it.
+        What::PerLayer { node, .. } if !node.name.contains("embed") => t.t("net-per-layer-part"),
         What::PerLayer { .. } => t.t("net-per-layer"),
         What::Block { index, .. } => index.to_string(),
         What::Bridge(_) => t.t("net-bridge"),
@@ -78,7 +84,7 @@ pub fn show(ui: &mut egui::Ui, t: &I18n, g: &mut GraphUi) {
     let (rect, resp) = ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
     let dark = ui.visuals().dark_mode;
     let text = ui.visuals().text_color();
-    if !g.fitted && !g.pos.is_empty() {
+    if !g.touched && g.fitted != Some(rect.size()) && !g.pos.is_empty() {
         fit(g, rect);
     }
     let to_screen = |p: [f32; 2], g: &GraphUi| rect.center() + g.pan + vec2(p[0], p[1]) * g.zoom;
@@ -96,6 +102,7 @@ pub fn show(ui: &mut egui::Ui, t: &I18n, g: &mut GraphUi) {
             let factor = (scroll * 0.0025).exp();
             let before = (p - rect.center() - g.pan) / g.zoom;
             g.zoom = (g.zoom * factor).clamp(0.05, 8.0);
+            g.touched = true;
             g.pan = p - rect.center() - before * g.zoom;
         }
     }
@@ -105,6 +112,7 @@ pub fn show(ui: &mut egui::Ui, t: &I18n, g: &mut GraphUi) {
     }
     if resp.dragged() {
         let d = resp.drag_delta();
+        g.touched = true;
         match g.dragging {
             Some(i) => {
                 g.pos[i][0] += d.x / g.zoom;
@@ -122,6 +130,7 @@ pub fn show(ui: &mut egui::Ui, t: &I18n, g: &mut GraphUi) {
         g.selected = Some(i);
     }
     let hovered = resp.hover_pos().and_then(|p| hit(p, g));
+    let marked = g.marks.as_ref().map_or([None; 4], |m| [m.largest, m.entry, m.exit, m.most_linked]);
 
     let p = ui.painter_at(rect);
     let line = ui.visuals().widgets.noninteractive.fg_stroke.color;
@@ -153,7 +162,8 @@ pub fn show(ui: &mut egui::Ui, t: &I18n, g: &mut GraphUi) {
             if r >= 9.0 || hovered == Some(i) {
                 p.text(c, Align2::CENTER_CENTER, label, FontId::proportional(12.0), Color32::BLACK);
             }
-        } else {
+        } else if g.zoom >= 1.2 || g.selected == Some(i) || hovered == Some(i) || marked.contains(&Some(i)) {
+            // Only the named parts carry a label at overview zoom; the rest would pile on each other.
             p.text(c + vec2(0.0, r + 4.0), Align2::CENTER_TOP, label, FontId::proportional(15.0), text);
         }
     }
@@ -187,10 +197,11 @@ fn fit(g: &mut GraphUi, rect: Rect) {
             hi[k] = hi[k].max(p[k] + r);
         }
     }
-    let size = vec2(hi[0] - lo[0], hi[1] - lo[1]) + vec2(120.0, 120.0);
+    // Room for the legend at the top left and labels under the outer circles.
+    let size = vec2(hi[0] - lo[0], hi[1] - lo[1]) + vec2(320.0, 260.0);
     g.zoom = (rect.width() / size.x).min(rect.height() / size.y).clamp(0.05, 2.0);
     g.pan = -vec2((lo[0] + hi[0]) / 2.0, (lo[1] + hi[1]) / 2.0) * g.zoom;
-    g.fitted = true;
+    g.fitted = Some(rect.size());
 }
 
 fn legend(ui: &egui::Ui, t: &I18n, rect: Rect, dark: bool) {

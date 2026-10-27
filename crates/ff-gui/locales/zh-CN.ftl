@@ -612,3 +612,4 @@ inside-not-one-token = 此模型把这个词切成几段，所以它没有单独
 inside-neurons-title = 此块最强的 16 个神经元及其推向的词
 inside-neuron = 神经元 { $index }：
 inside-neurons-note = 仅根据权重读取（投影到词汇表），没有运行任何东西。许多神经元读出来是一堆不相关的片段，这很正常：一个神经元很少只代表一个词。这里显示的是神经元推动的方向，而不是它所做的全部。
+net-per-layer-part = 提示通路的一部分
