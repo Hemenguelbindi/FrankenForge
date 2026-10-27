@@ -72,9 +72,14 @@ you explicitly ask it to analyze.
   - **Learn** — a self-contained guided tour for a reader without ML background: how text becomes
     tokens, tokens become numbers, numbers pass through repeated blocks; with an accordion of
     explanations and diagrams. Facts come from the opened file; missing evidence is stated plainly.
-  - **Model structure** — the same checkpoint explained in plain language: components (language /
-    audio / vision), repeated blocks, and what each part does (attention, MLP, experts,
-    normalization, embeddings, output head…).
+  - **Model structure** — the checkpoint as a graph you can move around: one circle per block,
+    word table, bridge and output, sized by its parameters and linked along the path data takes
+    (language, vision and audio parts, per-layer inputs, blocks that share attention memory).
+    The program names the largest part, where data enters and leaves, and the most linked part.
+    Click a circle to see **what is inside in words**: a word table shows which words sit next to
+    the word you type (in Gemma 4: «кот» → kot, 猫, kitten); a block shows the words its strongest
+    neurons push the next word toward (SmolLM2 block 25: likelihood, risk, chance, probability).
+    Read from the weights only — nothing is run — and many neurons honestly read as noise.
   - **Technical data** — the raw view: tensor tree grouped into blocks, full-name search,
     `config.json`, and the **Tensor Inspector**.
 - **Tensor Inspector:** selecting a tensor shows its role, the meaning of each dimension
