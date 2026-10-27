@@ -57,7 +57,7 @@ weights are from the ones they replaced (`||new - old|| / ||old||`), what happen
 whether the model still answers well. `plan` shows the same report before anything is written
 (`--weights-diff` adds the deltas, `--json` gives it to tools).
 
-![FrankenForge GUI in English: Technical data view with a tensor selected and the Tensor Inspector analyzing it](examples/app_example.png)
+![FrankenForge model graph of Gemma 4 E2B: blocks of the language, vision and audio parts as circles sized by parameters, and on the right the words the strongest neurons of a block push toward](examples/Model_Sturcture.png)
 
 ## What works today
 
@@ -107,6 +107,10 @@ you explicitly ask it to analyze.
 - **Localization:** English, Русский, 简体中文 — auto-detected from the OS, switchable in the
   toolbar at any time, saved between runs. The bundled Noto Sans SC font covers all three.
 - Dark/light theme; window settings persist.
+
+![Forge: Base and Donor blocks side by side, a Donor block taken into the same position of the Base](examples/forgar_example.png)
+
+![Technical data: tensor tree with a tensor selected and the Tensor Inspector analyzing it](examples/app_example.png)
  
 ## See it in action
 
@@ -309,12 +313,12 @@ touches metadata, weights are streamed one tensor at a time.
 
 Short version, in order (details in [ROADMAP.md](ROADMAP.md)):
 
-1. A **real SmolLM2 transplant** — end-to-end surgery on a public model, recipe and lock file included.
-2. **Verification through xInfer** — actually run a rebuilt checkpoint in an inference runtime.
-3. **Read-only GGUF** — inspect GGUF checkpoints without claiming to write them.
-4. **Graphs and more complex compositions** — multi-input surgery beyond pairwise block swapping.
+Done in v0.1.1: the real SmolLM2 transplant (recipe, lock, report), visual composition (Forge)
+and seeing what is inside a model (graph, weights read in words). Next:
 
-Visual composition in the GUI, once planned here, already exists as **Forge** (see above).
+1. **Running models and comparing answers** — run a rebuilt checkpoint next to its base and donor.
+2. **Read-only GGUF** — inspect GGUF checkpoints without claiming to write them.
+3. **Graphs and more complex compositions** — multi-input surgery beyond pairwise block swapping.
 
 No dates and no promises: FrankenForge verifies the on-disk integrity of a rebuild — never its
 quality, and never a claim that a platform it has not run on actually works.

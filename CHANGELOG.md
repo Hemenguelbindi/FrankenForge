@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-27
+
 ### Added
 
 - **Build report** (`ff_surgery::report`): a block-level account of a plan or build. For every
@@ -95,5 +97,6 @@ verified on disk, not in behavior.
   opt-in and marked NOT validated.
 - No `--locked` rebuild; the reader reopens the file per tensor (no mmap).
 
-[Unreleased]: https://github.com/Hemenguelbindi/FrankenForge/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Hemenguelbindi/FrankenForge/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Hemenguelbindi/FrankenForge/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Hemenguelbindi/FrankenForge/releases/tag/v0.1.0

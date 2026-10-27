@@ -1220,7 +1220,7 @@ checksum = "b97b65636e5b9ef369943878ac74335ba1c55c1cb6adbf1e2c293c624248d693"
 
 [[package]]
 name = "ff-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "ff-core",
@@ -1231,7 +1231,7 @@ dependencies = [
 
 [[package]]
 name = "ff-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "thiserror 2.0.21",
@@ -1239,7 +1239,7 @@ dependencies = [
 
 [[package]]
 name = "ff-gui"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "eframe",
  "ff-core",
@@ -1256,7 +1256,7 @@ dependencies = [
 
 [[package]]
 name = "ff-io"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "ff-core",
  "serde",
@@ -1265,7 +1265,7 @@ dependencies = [
 
 [[package]]
 name = "ff-preflight"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "ff-core",
  "serde_json",
@@ -1274,7 +1274,7 @@ dependencies = [
 
 [[package]]
 name = "ff-surgery"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "ff-core",
  "serde",
