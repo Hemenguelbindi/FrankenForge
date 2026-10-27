@@ -163,8 +163,21 @@ fn keep_top(v: &mut Vec<(usize, f32)>, k: usize) {
     }
 }
 
-fn hits(vocab: &Vocab, found: Vec<(usize, f32)>) -> Vec<Hit> {
-    found.into_iter().map(|(id, score)| Hit { id, text: vocab.text(id), score }).collect()
+/// Best first, at most `k`, one per word: `the`, ` the` and `The` are different tokens but the
+/// same word, and listing all of them hides the other words.
+fn hits(vocab: &Vocab, found: Vec<(usize, f32)>, k: usize) -> Vec<Hit> {
+    let mut seen = std::collections::HashSet::new();
+    found
+        .into_iter()
+        .map(|(id, score)| Hit { id, text: vocab.text(id), score })
+        .filter(|h| seen.insert(h.text.trim().to_lowercase()))
+        .take(k)
+        .collect()
+}
+
+/// Candidates kept per query so that `k` distinct words remain after merging variants.
+fn pool(k: usize) -> usize {
+    k * 4
 }
 
 /// Tokens whose rows of `table` (over `cols`, e.g. one block's slice of a per-layer table) point
@@ -189,7 +202,7 @@ pub fn nearest(
         return Ok(Some(Vec::new()));
     }
     let q: Vec<f32> = q.iter().map(|x| x / norm).collect();
-    Ok(scan(src, table, cols, &[q], true, k, watch)?.map(|mut b| hits(vocab, b.remove(0))))
+    Ok(scan(src, table, cols, &[q], true, pool(k), watch)?.map(|mut b| hits(vocab, b.remove(0), k)))
 }
 
 /// The `n` strongest neurons of `down` (the matrix that writes a feed-forward layer back into the
@@ -241,11 +254,11 @@ pub fn neurons(
     if !finished {
         return Ok(None);
     }
-    let Some(found) = scan(src, table, 0..width, &vectors, false, k, watch)? else { return Ok(None) };
+    let Some(found) = scan(src, table, 0..width, &vectors, false, pool(k), watch)? else { return Ok(None) };
     let words = picked.into_iter().zip(found);
     Ok(Some(
         words
-            .map(|(j, f)| NeuronWords { neuron: j, strength: strength[j].sqrt(), words: hits(vocab, f) })
+            .map(|(j, f)| NeuronWords { neuron: j, strength: strength[j].sqrt(), words: hits(vocab, f, k) })
             .collect(),
     ))
 }

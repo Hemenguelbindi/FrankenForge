@@ -65,6 +65,14 @@ fn word_table_prefers_the_output_head_and_skips_per_layer_tables() {
 }
 
 #[test]
+fn spelling_variants_of_one_word_count_once() {
+    let v = Vocab::from_texts(["cat", " Cat", "CAT ", "dog", "car"].map(String::from).to_vec());
+    let found = vec![(0, 0.9), (1, 0.8), (2, 0.7), (3, 0.6), (4, 0.5)];
+    let h = hits(&v, found, 3);
+    assert_eq!(texts(&h), ["cat", "dog", "car"], "the best-scored spelling stays");
+}
+
+#[test]
 fn nearest_words_by_direction() {
     let src = rows(&[("e", embed())]);
     let hits = run(|w| nearest(&src, "e", &vocab(), 0, 0..3, 3, w));

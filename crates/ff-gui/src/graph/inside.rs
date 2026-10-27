@@ -90,14 +90,14 @@ fn answer(q: &Query, m: &Meter) -> Outcome<Answer> {
                 _ => 0..width,
             };
             m.total.store(lens::nearest_bytes(lens.source.model(), table), Ordering::Relaxed);
-            let hits = lens::nearest(&*lens.source, table, &lens.vocab, id, cols, 16, watch).map_err(fail)?;
+            let hits = lens::nearest(&*lens.source, table, &lens.vocab, id, cols, 12, watch).map_err(fail)?;
             hits.map(Answer::Words).ok_or_else(stopped)
         }
         Query::Neurons { model, down } => {
             let lens = Lens::open(model, &Safetensors).map_err(fail)?;
             m.total.store(lens::neurons_bytes(lens.source.model(), down, &lens.table), Ordering::Relaxed);
             let found =
-                lens::neurons(&*lens.source, down, &lens.table, &lens.vocab, 16, 8, watch).map_err(fail)?;
+                lens::neurons(&*lens.source, down, &lens.table, &lens.vocab, 16, 6, watch).map_err(fail)?;
             found.map(Answer::Neurons).ok_or_else(stopped)
         }
     }
