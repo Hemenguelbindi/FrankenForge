@@ -83,7 +83,8 @@ fn every_key_used_by_the_code_exists_in_english() {
     used.extend(keys_used(include_str!("../inspector/panel.rs")));
     used.extend(keys_used(include_str!("../learn.rs")));
     used.extend(keys_used(include_str!("../structure.rs")));
-    used.extend(keys_used(include_str!("../graph/view.rs")));
+    used.extend(keys_used(include_str!("../graph/canvas.rs")));
+    used.extend(keys_used(include_str!("../graph/inside.rs")));
     used.extend(keys_used(include_str!("../views.rs")));
     used.extend(keys_used(include_str!("../forge/mod.rs")));
     used.extend(keys_used(include_str!("../forge/build_view.rs")));

@@ -3,7 +3,10 @@
 //! for any architecture: whatever is not recognised is drawn as "other" with its real sizes,
 //! never guessed into a known part. No egui here; `view` draws it.
 
-pub mod view;
+pub mod canvas;
+pub mod inside;
+mod layout;
+mod net;
 
 use serde_json::Value;
 

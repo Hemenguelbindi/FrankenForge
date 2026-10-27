@@ -10,7 +10,7 @@ use ff_io::Safetensors;
 
 use super::*;
 
-fn checkpoint(name: &str, tensors: &[(&str, &[usize])], config: Option<&str>) -> Inspected {
+pub(crate) fn checkpoint(name: &str, tensors: &[(&str, &[usize])], config: Option<&str>) -> Inspected {
     // Tests run in parallel and may build the same fixture: every call gets its own folder.
     static NEXT: AtomicUsize = AtomicUsize::new(0);
     let n = NEXT.fetch_add(1, Ordering::Relaxed);
@@ -31,7 +31,7 @@ fn checkpoint(name: &str, tensors: &[(&str, &[usize])], config: Option<&str>) ->
 }
 
 /// Gemma-like: three language blocks, a vision tower with a bridge, a per-layer table.
-fn multimodal() -> Inspected {
+pub(crate) fn multimodal() -> Inspected {
     let mut t: Vec<(String, Vec<usize>)> = Vec::new();
     for i in 0..3 {
         let p = format!("model.language_model.layers.{i}.");

@@ -289,26 +289,6 @@ structure-title = Model structure
 structure-blocks = Repeated blocks
 structure-parts = Parts of the file
 structure-no-raw = This view explains what each part does. Raw names, shapes and numbers live in Technical data.
-structure-explainer = Choose a block to open it. Each group below explains its purpose before any technical terms.
-structure-stack = { $count ->
-        [one] The same block repeats { $count } time
-       *[other] The same block repeats { $count } times
-    }
-structure-block = Block { $index }
-structure-block-parts = { $count ->
-        [one] { $count } part
-       *[other] { $count } parts
-    }
-structure-loose = Outside the repeated blocks — { $count ->
-        [one] { $count } part
-       *[other] { $count } parts
-    }
-structure-empty = No parts were recognized in this component.
-structure-selected = Selected:
-structure-open-technical = Open technical data
-structure-bias = adjustment
-structure-expert-index = unit { $index }
-structure-select = Select a part on the left to see its structure.
 structure-group-attention = Attention: sharing context
 structure-group-attention-desc = Each piece compares itself with other pieces and mixes in the information it needs.
 structure-group-mlp = Additional processing
@@ -612,25 +592,44 @@ forge-diff-unknown = unknown
 forge-diff-most = most changed: { $part } { $value }
 forge-diff-not-compared = { $count } blocks are built differently and were not compared.
 forge-diff-how-to-read = How to read it: 0% means the block is the same as in the Base. The larger the number, the more the Donor's training changed this block. If all blocks differ by about the same amount, the changes are spread over the whole model, and one transplanted block carries only a small part of them. The number says how much the weights moved, not whether the model gets better: that is only visible by running the model.
-graph-title = How data flows through the model
-graph-intro = Built from the file itself: names, sizes and config.json. Text (or image, sound) enters on the left, passes every block of the strip in order, and leaves on the right. Click a block to see what is inside it.
-graph-tower = { $part }: { $blocks } blocks
-graph-width = stream of { $width } numbers per token
-graph-input-unknown = input not recognised
-graph-output = next word
-graph-into-language = into the language part
-graph-joins-unknown = how it joins the language part is not recognised
-graph-per-layer = Every block also gets its own input straight from the token: { $name } ({ $shape }).
-graph-kv-shared = Blocks { $first }–{ $last } ({ $count }) keep no attention memory of their own: they reuse the memory of earlier blocks (num_kv_shared_layers in config.json).
-graph-layer-types = Block kinds from config.json:
-graph-other-loose = { $count } more tensors outside the blocks; their purpose is not recognised.
 graph-flow = { $from } → { $to }
-graph-block-tip = block { $index }
-graph-block-title = Inside { $stack } block { $index }
-graph-block-empty = No matrices in this block were found.
-graph-stream = stream: { $width } numbers per token
-graph-stream-unknown = stream (width not recognised)
 graph-norms = { $count } normalizations keep the numbers in range
-graph-small = + { $count } small parts (scales, biases)
-graph-block-note = Every part reads the stream and adds its result back (+), so blocks are joined only through the stream. The sizes say how many numbers each matrix takes and gives; click a line to open that tensor. Which neurons matter for which words is not visible here: that needs running the model.
-graph-list-title = All parts, block by block
+
+net-words = Word table
+net-output-words = Output: words
+net-per-layer = Hints for every block
+net-bridge = Bridge
+net-block-tip = Block { $index } · { $params } parameters
+net-legend-size = Circle size = number of parameters
+net-legend-shared = Orange ring: the block reuses the attention memory of another block
+net-legend-controls = Wheel: zoom · drag: move · click: what is inside
+inside-summary = What the program found in this model
+inside-largest = Largest part: { $name } ({ $share }% of the model)
+inside-entry = Data enters here: { $name }
+inside-exit = The next word comes out here: { $name }
+inside-most-linked = Most links: { $name }
+inside-pick = Click a circle on the graph to see what is inside it.
+inside-size = { $params } parameters · { $share }% of the model
+inside-words = One row per word (token) of the vocabulary of the model, { $rows } rows. Each row is the list of numbers the model uses for that word; words with a similar meaning get similar rows. Type a word to see its neighbours.
+inside-output-words = Turns the result of the last block back into a score for each of the { $rows } words; the word with the highest score is the next word. Type a word to see which words this table treats as similar.
+inside-per-layer = A lookup table, not a computing part: for every word it holds a separate small set of numbers for each of the { $blocks } blocks, handed to that block directly. It can be huge because it has a row for every word of the vocabulary. Type a word and choose a block to see which words get a similar hint there.
+inside-block = Block { $index } of { $stack }: it reads the stream of numbers, works on it and adds its result back.
+inside-block-kind = Kind from config.json: { $kind }
+inside-shared-memory = This block keeps no attention memory of its own; it reuses the memory of an earlier block.
+inside-neurons-hint = The feed-forward part has thousands of neurons. Each one, when it fires, pushes the next word in a direction. The program can read that direction as words from the weights alone.
+inside-neurons-button = Which words do its neurons push toward?
+inside-neurons-none = This block has no recognised feed-forward part, so its neurons cannot be read as words.
+inside-bridge = Translates the numbers of this part into the numbers the language part works with, so that what was seen or heard can be talked about.
+inside-word-label = Word:
+inside-for-block = block
+inside-words-button = Show similar words
+inside-reading = Reading the weights…
+inside-stop = Stop
+inside-stopped = Stopped.
+inside-failed = Could not read this part
+inside-near = Next to “{ $word }”:
+inside-near-note = The number is how similar the rows are (1 = the same direction). Read from the weights only; nothing was run.
+inside-not-one-token = This model splits the word into several pieces, so it has no single row. Pieces it starts with:
+inside-neurons-title = The 16 strongest neurons of this block and the words each pushes toward
+inside-neuron = neuron { $index }:
+inside-neurons-note = Read from the weights only (projection onto the vocabulary), nothing was run. Many neurons read as a mix of unrelated pieces: that is normal, a neuron rarely means one word. This shows where a neuron pushes, not everything it does.

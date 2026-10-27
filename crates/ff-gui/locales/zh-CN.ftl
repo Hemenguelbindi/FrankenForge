@@ -268,23 +268,6 @@ structure-title = 模型结构
 structure-blocks = 重复块
 structure-parts = 文件中的部分
 structure-no-raw = 这里解释每个部分做什么。原始名称、形状和数字位于“技术数据”。
-structure-explainer = 选择一个块展开。每个分组会先用日常语言说明用途，再出现技术术语。
-structure-stack = { $count ->
-       *[other] 同一个块重复 { $count } 次
-    }
-structure-block = 块 { $index }
-structure-block-parts = { $count ->
-       *[other] { $count } 个部分
-    }
-structure-loose = 重复块之外 — { $count ->
-       *[other] { $count } 个部分
-    }
-structure-empty = 此部分中没有识别到内容。
-structure-selected = 已选择：
-structure-open-technical = 打开技术数据
-structure-bias = 调整值
-structure-expert-index = 单元 { $index }
-structure-select = 在左侧选择一个部分以查看结构。
 structure-group-attention = Attention：共享上下文
 structure-group-attention-desc = 每个片段会与其他片段比较，并混入自己需要的信息。
 structure-group-mlp = 额外处理
@@ -588,25 +571,44 @@ forge-diff-unknown = 未知
 forge-diff-most = 变化最大：{ $part } { $value }
 forge-diff-not-compared = 有 { $count } 个块结构不同，未进行比较。
 forge-diff-how-to-read = 如何解读：0% 表示该块与基础模型相同。数值越大，供体的训练对这个块的改变越大。如果所有块的差异都差不多，说明改变分布在整个模型中，移植一个块只会带走其中一小部分。这个数值只说明权重变化了多少，并不说明模型会不会变好：只有运行模型才能看出来。
-graph-title = 数据如何流经模型
-graph-intro = 根据文件本身构建：名称、尺寸和 config.json。文本（或图像、声音）从左侧进入，按顺序经过条带中的每个块，从右侧离开。点击一个块即可查看其内部。
-graph-tower = { $part }：{ $blocks } 个块
-graph-width = 每个词元 { $width } 个数的流
-graph-input-unknown = 未识别输入
-graph-output = 下一个词
-graph-into-language = 进入语言部分
-graph-joins-unknown = 未识别它如何连接到语言部分
-graph-per-layer = 每个块还会直接从词元获得自己的输入：{ $name }（{ $shape }）。
-graph-kv-shared = 块 { $first }–{ $last }（共 { $count } 个）不保存自己的注意力记忆，而是复用更早块的记忆（config.json 中的 num_kv_shared_layers）。
-graph-layer-types = config.json 中的块类型：
-graph-other-loose = 块外还有 { $count } 个张量，其用途未识别。
 graph-flow = { $from } → { $to }
-graph-block-tip = 块 { $index }
-graph-block-title = { $stack } 中第 { $index } 块的内部
-graph-block-empty = 此块中未找到矩阵。
-graph-stream = 流：每个词元 { $width } 个数
-graph-stream-unknown = 流（宽度未识别）
 graph-norms = { $count } 个归一化，使数值保持在合理范围
-graph-small = + { $count } 个小部件（缩放、偏置）
-graph-block-note = 每个部分读取流，并把结果加回流中（+），因此块之间只通过流相连。尺寸表示每个矩阵接收和输出多少个数；点击一行可打开该张量。哪些神经元对哪些词重要在这里看不到：这需要运行模型。
-graph-list-title = 按块列出的全部部分
+
+net-words = 词表
+net-output-words = 输出：词
+net-per-layer = 每个块的提示
+net-bridge = 转接层
+net-block-tip = 块 { $index } · { $params } 个参数
+net-legend-size = 圆的大小 = 参数数量
+net-legend-shared = 橙色圆环：该块复用其他块的注意力记忆
+net-legend-controls = 滚轮：缩放 · 拖动：移动 · 点击：查看内部
+inside-summary = 程序在此模型中发现的内容
+inside-largest = 最大的部分：{ $name }（占模型 { $share }%）
+inside-entry = 数据从这里进入：{ $name }
+inside-exit = 下一个词从这里输出：{ $name }
+inside-most-linked = 连接最多：{ $name }
+inside-pick = 点击图中的圆，查看其内部。
+inside-size = { $params } 个参数 · 占模型 { $share }%
+inside-words = 模型词汇表中每个词（词元）一行，共 { $rows } 行。每一行是模型表示该词的一组数；意思相近的词，行也相近。输入一个词即可查看它的近邻。
+inside-output-words = 把最后一个块的结果转换回 { $rows } 个词各自的分数；分数最高的词就是下一个词。输入一个词，查看此表认为相近的词。
+inside-per-layer = 这是一张查找表，而不是计算部分：它为每个词给 { $blocks } 个块各存一小组数，直接交给对应的块。因为词汇表中每个词都有一行，所以它可能非常大。输入一个词并选择一个块，查看哪些词在那里得到相似的提示。
+inside-block = { $stack } 的第 { $index } 块：读取数值流，处理后把结果加回去。
+inside-block-kind = config.json 中的类型：{ $kind }
+inside-shared-memory = 此块没有自己的注意力记忆，而是复用更早块的记忆。
+inside-neurons-hint = 前馈部分有成千上万个神经元。每个神经元被激活时，会把下一个词推向某个方向。程序仅凭权重就能把这个方向读成词。
+inside-neurons-button = 它的神经元把词推向哪些词？
+inside-neurons-none = 此块中未识别出前馈部分，因此无法把它的神经元读成词。
+inside-bridge = 把这一部分的数值转换成语言部分使用的数值，这样看到或听到的内容就能被说出来。
+inside-word-label = 词：
+inside-for-block = 块
+inside-words-button = 显示相似的词
+inside-reading = 正在读取权重……
+inside-stop = 停止
+inside-stopped = 已停止。
+inside-failed = 无法读取这一部分
+inside-near = 与“{ $word }”相近：
+inside-near-note = 数值表示两行的相似程度（1 = 方向相同）。仅根据权重读取，没有运行任何东西。
+inside-not-one-token = 此模型把这个词切成几段，所以它没有单独的一行。它开头的片段：
+inside-neurons-title = 此块最强的 16 个神经元及其推向的词
+inside-neuron = 神经元 { $index }：
+inside-neurons-note = 仅根据权重读取（投影到词汇表），没有运行任何东西。许多神经元读出来是一堆不相关的片段，这很正常：一个神经元很少只代表一个词。这里显示的是神经元推动的方向，而不是它所做的全部。

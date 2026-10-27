@@ -221,8 +221,8 @@ The window opens with the guided tour; use *Open file…* or *Open folder…* to
    directory (shards, `config.json`, tokenizer). Only headers and metadata are read.
 2. **Learn** — the default tab: a short plain-language tour of how a language model works, using
    the structure of *this* file (parameter count, recognized parts, number of repeated blocks).
-3. **Model structure** — a map of the file in human terms: each block's parts (attention, MLP,
-   experts, normalization…) are labeled with what they do.
+3. **Model structure** — the graph of the file: wheel to zoom, drag to move, click a circle for
+   what is inside it (similar words, words of the strongest neurons, the block's parts by purpose).
 4. **Technical data** — the raw tensor tree. Search any tensor by full name; click a tensor to
    select it.
 5. **Select a tensor** — the Tensor Inspector panel opens at the right: role, dimension meanings,
@@ -248,6 +248,8 @@ cargo run -p ff-cli -- inspect ./models/base                      # file or dire
 cargo run -p ff-cli -- compare ./models/base ./models/donor       # metadata-only compatibility report
 cargo run -p ff-cli -- compare ./models/base ./models/donor --json
 cargo run -p ff-cli -- compare ./models/base ./models/donor --weights  # per-block weight difference (reads weights)
+cargo run -p ff-cli -- words ./models/base Paris                  # words the word table puts next to "Paris"
+cargo run -p ff-cli -- neurons ./models/base model.layers.25.mlp.down_proj.weight  # words its strongest neurons push toward
 
 cargo run -p ff-cli -- plan examples/recipe.toml                  # dry run: block-level report
 cargo run -p ff-cli -- plan examples/smollm2-transplant.toml --weights-diff --json  # + weight deltas, as JSON
